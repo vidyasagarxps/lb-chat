@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Loan Boarding Analytics Chat</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f0f2f5; height: 100vh; display: flex; flex-direction: column; }
+  .header { background: #1b2a4a; color: #fff; padding: 12px 20px; display: flex; align-items: center; gap: 10px; }
+  .header-icon { width: 32px; height: 32px; background: #3b82f6; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+  .header h1 { font-size: 16px; font-weight: 600; }
+  .header span { font-size: 11px; color: #94a3b8; }
+  .chat-area { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+  .msg { max-width: 85%; padding: 12px 16px; border-radius: 12px; font-size: 13px; line-height: 1.5; word-wrap: break-word; }
+  .msg-user { align-self: flex-end; background: #3b82f6; color: #fff; border-bottom-right-radius: 4px; }
+  .msg-bot { align-self: flex-start; background: #fff; color: #1e293b; border-bottom-left-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+  .msg-bot table { width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 12px; }
+  .msg-bot th { background: #f1f5f9; padding: 6px 10px; text-align: left; border-bottom: 2px solid #e2e8f0; font-weight: 600; white-space: nowrap; }
+  .msg-bot td { padding: 5px 10px; border-bottom: 1px solid #f1f5f9; }
+  .msg-bot tr:hover td { background: #f8fafc; }
+  .msg-bot h3 { font-size: 13px; margin: 10px 0 4px; color: #1b2a4a; }
+  .msg-bot p { margin: 4px 0; }
+  .msg-bot strong { color: #1b2a4a; }
+  .msg-bot code { background: #f1f5f9; padding: 1px 4px; border-radius: 3px; font-size: 12px; }
+  .typing { align-self: flex-start; background: #fff; padding: 12px 16px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); display: none; }
+  .typing span { display: inline-block; width: 8px; height: 8px; background: #94a3b8; border-radius: 50%; margin: 0 2px; animation: bounce 1.4s infinite; }
+  .typing span:nth-child(2) { animation-delay: 0.2s; }
+  .typing span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes bounce { 0%, 80%, 100% { transform: translateY(0); } 40% { transform: translateY(-8px); } }
+  .input-area { background: #fff; padding: 12px 16px; border-top: 1px solid #e2e8f0; display: flex; gap: 10px; align-items: center; }
+  .input-area input { flex: 1; padding: 10px 14px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 13px; outline: none; }
+  .input-area input:focus { border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59,130,246,0.15); }
+  .input-area button { padding: 10px 20px; background: #3b82f6; color: #fff; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+  .input-area button:hover { background: #2563eb; }
+  .input-area button:disabled { background: #94a3b8; cursor: not-allowed; }
+  .welcome { text-align: center; color: #64748b; padding: 40px 20px; font-size: 13px; line-height: 1.8; }
+  .welcome h2 { color: #1b2a4a; font-size: 18px; margin-bottom: 8px; }
+  .suggestions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 12px; }
+  .suggestions button { padding: 6px 12px; background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 16px; font-size: 12px; color: #475569; cursor: pointer; }
+  .suggestions button:hover { background: #e2e8f0; }
+  .error { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-icon">LB</div>
+  <div>
+    <h1>Loan Boarding Analytics</h1>
+    <span>Powered by Snowflake Cortex Agent</span>
+  </div>
+</div>
+
+<div class="chat-area" id="chatArea">
+  <div class="welcome">
+    <h2>Loan Boarding Analytics Assistant</h2>
+    <p>Ask me about document classification, field extraction, rule evaluation, processing times, HIL metrics, or KPIs.</p>
+    <div class="suggestions">
+      <button onclick="sendSuggestion(this)">Executive Summary</button>
+      <button onclick="sendSuggestion(this)">Document Classification Summary</button>
+      <button onclick="sendSuggestion(this)">Field Extraction Summary</button>
+      <button onclick="sendSuggestion(this)">Rule Evaluation Summary</button>
+      <button onclick="sendSuggestion(this)">Human in Loop Summary</button>
+      <button onclick="sendSuggestion(this)">Processing Time Breakdown</button>
+    </div>
+  </div>
+  <div class="typing" id="typing"><span></span><span></span><span></span></div>
+</div>
+
+<div class="input-area">
+  <input type="text" id="userInput" placeholder="Ask about loan boarding metrics..." onkeydown="if(event.key==='Enter')sendMessage()">
+  <button id="sendBtn" onclick="sendMessage()">Send</button>
+</div>
+
+<script>
+// ============================================================
+// CONFIGURATION — UPDATE THESE 3 VALUES
+// ============================================================
+const SNOWFLAKE_URL = "https://ARXPS-XPANSE.snowflakecomputing.com";
+const AGENT_PATH = "/api/v2/databases/XPS_AID/schemas/LOAN_BOARDING/agents/LB_PBI_AGENT:run";
+const PAT = 'eyJraWQiOiI5MzcyNjA2OTQ3MzU5NTQiLCJhbGciOiJFUzI1NiJ9.eyJwIjoiMTQzMDE0NjUwMTM6MTQzMDE0NjY3NTciLCJpc3MiOiJTRjoxMDQzIiwiZXhwIjoxNzgxMTE4MjQ3fQ.JbOjs_9FuHuB7AfTbAgtcQAgx_tAfm5JYI2UvF-X0ggKcBC0Hi3F12eS-wF31jobIcXYeZETIlstNPKybOAKjA'
+
+// ============================================================
+
+let threadId = null;
+let parentMessageId = 0;
+
+function sendSuggestion(btn) {
+  document.getElementById('userInput').value = btn.textContent;
+  sendMessage();
+}
+
+async function sendMessage() {
+  const input = document.getElementById('userInput');
+  const question = input.value.trim();
+  if (!question) return;
+
+  const welcome = document.querySelector('.welcome');
+  if (welcome) welcome.remove();
+
+  addMessage(question, 'user');
+  input.value = '';
+
+  const sendBtn = document.getElementById('sendBtn');
+  sendBtn.disabled = true;
+  document.getElementById('typing').style.display = 'block';
+  scrollToBottom();
+
+  try {
+    const response = await askAgent(question);
+    document.getElementById('typing').style.display = 'none';
+    parseAndRender(response);
+  } catch (err) {
+    document.getElementById('typing').style.display = 'none';
+    addMessage('Error: ' + err.message, 'bot', true);
+  }
+
+  sendBtn.disabled = false;
+  scrollToBottom();
+}
+
+async function askAgent(question) {
+  const body = {
+    messages: [{
+      role: "user",
+      content: [{ type: "text", text: question }]
+    }],
+    stream: false
+  };
+
+  if (threadId) {
+    body.thread_id = threadId;
+    body.parent_message_id = parentMessageId;
+  }
+
+  const response = await fetch(SNOWFLAKE_URL + AGENT_PATH, {
+    method: "POST",
+    headers: {
+      "Authorization": "Bearer " + PAT,
+      "Content-Type": "application/json",
+      "Accept": "application/json"
+    },
+    body: JSON.stringify(body)
+  });
+
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error("API " + response.status + ": " + errText);
+  }
+
+  return await response.json();
+}
+
+function parseAndRender(data) {
+  if (data.metadata) {
+    if (data.metadata.run_id && !threadId) {
+      threadId = data.metadata.run_id;
+    }
+    if (data.metadata.message_id !== undefined) {
+      parentMessageId = data.metadata.message_id;
+    }
+  }
+
+  let html = '';
+
+  if (!data.content || data.content.length === 0) {
+    addMessage('No response received.', 'bot');
+    return;
+  }
+
+  for (const item of data.content) {
+    if (item.type === 'text') {
+      html += formatText(item.text);
+    } else if (item.type === 'table') {
+      html += renderTable(item.table);
+    } else if (item.type === 'tool_result' && item.tool_result) {
+      html += parseToolResult(item.tool_result);
+    } else if (item.type === 'thinking') {
+      // skip thinking blocks
+    }
+  }
+
+  if (html) {
+    addMessage(html, 'bot');
+  }
+}
+
+function parseToolResult(toolResult) {
+  let html = '';
+  if (toolResult.content) {
+    for (const c of toolResult.content) {
+      if (c.type === 'json' && c.json) {
+        if (c.json.text) html += formatText(c.json.text);
+        if (c.json.sql) html += '<details><summary style="cursor:pointer;color:#64748b;font-size:11px;margin:4px 0;">View SQL</summary><code style="display:block;padding:8px;background:#f8fafc;border-radius:4px;font-size:11px;white-space:pre-wrap;margin:4px 0;">' + escapeHtml(c.json.sql) + '</code></details>';
+        if (c.json.result_set) html += renderResultSet(c.json.result_set);
+      } else if (c.type === 'text') {
+        html += formatText(c.text);
+      }
+    }
+  }
+  return html;
+}
+
+function renderTable(tableData) {
+  if (!tableData) return '';
+  let html = '';
+  if (tableData.title) html += '<h3>' + escapeHtml(tableData.title) + '</h3>';
+  if (tableData.result_set) html += renderResultSet(tableData.result_set);
+  return html;
+}
+
+function renderResultSet(rs) {
+  if (!rs || !rs.data || rs.data.length === 0) return '<p><em>No data returned.</em></p>';
+
+  const columns = rs.resultSetMetaData && rs.resultSetMetaData.rowType
+    ? rs.resultSetMetaData.rowType.map(function(r) { return r.name; })
+    : rs.data[0].map(function(_, i) { return 'Col ' + (i + 1); });
+
+  let html = '<div style="overflow-x:auto;"><table>';
+  html += '<tr>';
+  for (const col of columns) {
+    html += '<th>' + escapeHtml(col.replace(/_/g, ' ')) + '</th>';
+  }
+  html += '</tr>';
+
+  for (const row of rs.data) {
+    html += '<tr>';
+    for (const cell of row) {
+      html += '<td>' + formatCell(cell) + '</td>';
+    }
+    html += '</tr>';
+  }
+  html += '</table></div>';
+  return html;
+}
+
+function formatCell(val) {
+  if (val === null || val === undefined) return '<span style="color:#94a3b8;">—</span>';
+  const s = String(val);
+  const num = Number(s);
+  if (!isNaN(num) && s !== '') {
+    if (num >= 1000 && Number.isInteger(num)) return num.toLocaleString();
+    if (s.includes('.') && !s.includes('%')) return parseFloat(num.toFixed(2)).toLocaleString();
+  }
+  return escapeHtml(s);
+}
+
+function formatText(text) {
+  if (!text) return '';
+  let html = escapeHtml(text);
+  html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
+  html = html.replace(/`(.*?)`/g, '<code>$1</code>');
+  html = html.replace(/### (.*?)(\n|$)/g, '<h3>$1</h3>');
+  html = html.replace(/## (.*?)(\n|$)/g, '<h3>$1</h3>');
+  html = html.replace(/# (.*?)(\n|$)/g, '<h3>$1</h3>');
+  html = html.replace(/\n- (.*?)(?=\n|$)/g, '<br>&bull; $1');
+  html = html.replace(/\n\n/g, '</p><p>');
+  html = html.replace(/\n/g, '<br>');
+  return '<p>' + html + '</p>';
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function addMessage(content, type, isError) {
+  const chatArea = document.getElementById('chatArea');
+  const typing = document.getElementById('typing');
+  const div = document.createElement('div');
+  div.className = 'msg msg-' + (type === 'user' ? 'user' : 'bot') + (isError ? ' error' : '');
+  if (type === 'user') {
+    div.textContent = content;
+  } else {
+    div.innerHTML = content;
+  }
+  chatArea.insertBefore(div, typing);
+  scrollToBottom();
+}
+
+function scrollToBottom() {
+  const chatArea = document.getElementById('chatArea');
+  chatArea.scrollTop = chatArea.scrollHeight;
+}
+</script>
+
+</body>
+</html>
