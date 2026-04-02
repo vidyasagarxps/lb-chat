@@ -24,11 +24,12 @@
   .bbl code{background:#f1f5f9;padding:1px 5px;border-radius:3px;font-size:12px;font-family:'SF Mono',monospace}
   .bbl ul{margin:6px 0 6px 4px;padding-left:16px}.bbl li{margin:3px 0}
   .tw{overflow-x:auto;margin:12px 0;border:1px solid var(--b);border-radius:8px;max-height:210px;overflow-y:auto}
-  .tw table{width:100%;border-collapse:collapse;font-size:12.5px;min-width:max-content}
-  .tw th{background:#f1f5f9;padding:8px 12px;text-align:left;font-weight:600;font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;color:#475569;border-bottom:2px solid var(--b);white-space:nowrap;position:sticky;top:0;z-index:1}
-  .tw td{padding:7px 12px;border-bottom:1px solid #f1f5f9;white-space:nowrap}
+  .tw table{width:100%;border-collapse:collapse;font-size:12.5px;min-width:max-content;table-layout:auto}
+  .tw th{background:#f1f5f9;padding:8px 14px;text-align:left;font-weight:600;font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;color:#475569;border-bottom:2px solid var(--b);white-space:nowrap;position:sticky;top:0;z-index:1;min-width:80px}
+  .tw td{padding:7px 14px;border-bottom:1px solid #f1f5f9;white-space:nowrap;min-width:80px}
   .tw tr:last-child td{border-bottom:none}.tw tr:hover td{background:#f8fafc}
-  .rn{text-align:right;font-variant-numeric:tabular-nums;font-family:'SF Mono',monospace;font-size:12px}
+  .tw th.rn,.tw td.rn{text-align:right;font-variant-numeric:tabular-nums;font-family:'SF Mono',monospace}
+  .tw td.rn{font-size:12px}
   .nl{color:#94a3b8}.rc{font-size:10px;color:#94a3b8;text-align:right;margin-top:3px}
   .cb{margin:12px 0;border:1px solid var(--b);border-radius:8px;overflow:hidden;background:#fff;min-height:60px}
   .cb .vega-embed{padding:10px}.cb .vega-embed details{display:none}
@@ -262,21 +263,30 @@ function pMdT(lines,si){
     idx++;
   }
   if(rows.length<2)return{h:'',e:si};
+
+  var numCols={};
+  for(var c=0;c<rows[0].length;c++){
+    var allNum=true;
+    for(var r=1;r<rows.length;r++){
+      if(rows[r]&&rows[r][c]){
+        var tv=rows[r][c].replace(/,/g,'').replace(/%/g,'').trim();
+        if(tv&&tv!=='\u2014'&&isNaN(Number(tv))){allNum=false;break;}
+      }
+    }
+    numCols[c]=allNum;
+  }
+
   var h='<div class="tw"><table><thead><tr>';
   for(var c=0;c<rows[0].length;c++){
-    var isN=false;
-    for(var r=1;r<rows.length;r++){if(rows[r][c]){var tv=rows[r][c].replace(/,/g,'').trim();if(tv&&tv!=='\u2014'&&!isNaN(Number(tv))){isN=true;}break;}}
-    h+='<th'+(isN?' class="rn"':'')+'>' +inF(rows[0][c])+'</th>';
+    h+='<th'+(numCols[c]?' class="rn"':'')+'>' +inF(rows[0][c])+'</th>';
   }
   h+='</tr></thead><tbody>';
   for(var r=1;r<rows.length;r++){
     h+='<tr>';
     for(var c=0;c<rows[0].length;c++){
       var v=(rows[r]&&rows[r][c]!==undefined)?rows[r][c]:'';
-      var cv=v.replace(/,/g,'').trim();
-      var isN=cv&&cv!=='\u2014'&&!isNaN(Number(cv));
       if(!v||v==='\u2014')h+='<td class="nl">\u2014</td>';
-      else if(isN)h+='<td class="rn">'+inF(v)+'</td>';
+      else if(numCols[c])h+='<td class="rn">'+inF(v)+'</td>';
       else h+='<td>'+inF(v)+'</td>';
     }
     h+='</tr>';
