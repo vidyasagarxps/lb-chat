@@ -26,6 +26,7 @@
     --red:#d9534f;
     --amber:#e9a63a;
     --shadow:0 8px 24px rgba(27,42,87,.08);
+    --shadow-sm:0 3px 10px rgba(27,42,87,.05);
   }
 
   *{margin:0;padding:0;box-sizing:border-box}
@@ -52,7 +53,7 @@
   .body::-webkit-scrollbar{width:6px}.body::-webkit-scrollbar-track{background:transparent}.body::-webkit-scrollbar-thumb{background:#c7d1e3;border-radius:4px}
   .wrap{width:100%;max-width:100%;min-height:100%}
 
-  .welcome{text-align:center;padding-top:20px}
+  .welcome{text-align:center;padding-top:20px;max-width:1100px;margin:0 auto}
   .welcome h2{margin:0 0 10px;font-size:22px;font-weight:700;color:#111827}
   .welcome p{margin:0;font-size:14px;color:var(--muted)}
   .chips{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;max-width:950px;margin:20px auto 0}
@@ -64,23 +65,24 @@
   .card-title{font-size:14px;font-weight:700;color:var(--header)}
   .card-desc{font-size:11.5px;color:var(--muted);line-height:1.4}
 
-  .thread{display:flex;flex-direction:column;gap:14px;padding:8px 0 28px}
+  .thread{display:flex;flex-direction:column;gap:14px;padding:8px 0 28px;width:100%;max-width:1100px;margin:0 auto}
   .msg-row{display:flex;width:100%}
-  .msg-row.u-row{justify-content:flex-end}
-  .msg-row.b-row{justify-content:flex-start}
+  .msg-row.u-row{justify-content:flex-end;max-width:1100px;margin:0 auto}
+  .msg-row.b-row{justify-content:center}
   .msg{font-size:13px;line-height:1.6;word-wrap:break-word;white-space:normal}
-  .msg.u{max-width:52%;border-radius:18px 18px 8px 18px;padding:12px 18px;background:var(--accent);color:#fff;box-shadow:0 4px 12px rgba(53,89,183,.20)}
+  .msg.u{max-width:min(60%,760px);border-radius:18px 18px 8px 18px;padding:12px 18px;background:var(--accent);color:#fff;box-shadow:0 4px 12px rgba(53,89,183,.20)}
   .msg.b{background:transparent;border:none;box-shadow:none;width:100%;max-width:100%;padding:0}
 
-  .assistant-shell{width:100%;display:flex;flex-direction:column;gap:10px}
-  .assistant-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .assistant-shell{width:100%;max-width:1100px;display:flex;flex-direction:column;gap:10px}
+  .assistant-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:0 6px}
   .assistant-label{font-size:10px;font-weight:700;color:#8b97b2;text-transform:uppercase;letter-spacing:.08em}
   .meta-badge{display:inline-flex;align-items:center;gap:6px;padding:4px 9px;border-radius:999px;border:1px solid var(--border);background:#fff;font-size:10px;font-weight:700;color:#5b6887}
   .meta-badge.agent{background:#eef3ff;color:#2644a4;border-color:#cbd9ff}
   .meta-badge.success{background:#ecfdf3;color:#15803d;border-color:#a7f3d0}
   .meta-badge.verified{background:#eff6ff;color:#1d4ed8;border-color:#bfdbfe}
 
-  .thinking-box{width:100%;background:#fff;border:1px solid var(--border);border-radius:16px;padding:14px 16px;box-shadow:var(--shadow)}
+  .thinking-box,.answer-card{width:100%;max-width:980px;margin:0 auto}
+  .thinking-box{background:#fff;border:1px solid var(--border);border-radius:16px;padding:12px 16px;box-shadow:var(--shadow-sm)}
   .thinking-header{display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none}
   .thinking-spinner{width:16px;height:16px;border:2.5px solid #dbe5f3;border-top-color:var(--blue);border-radius:50%;animation:spin .8s linear infinite;flex-shrink:0}
   .thinking-spinner.done{animation:none;border-color:var(--green);border-top-color:var(--green);background:var(--green);position:relative}
@@ -90,15 +92,15 @@
   .thinking-sub{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .thinking-arrow{font-size:10px;color:#98a2b3;transition:transform .15s;margin-left:auto;padding:4px}
   .thinking-arrow.open{transform:rotate(180deg)}
-  .thinking-body{max-height:0;overflow:hidden;transition:max-height .28s ease}
-  .thinking-body.open{max-height:220px;overflow-y:auto}
-  .thinking-steps-list{margin-top:12px;border-top:1px solid var(--border-2);padding-top:10px}
-  .thinking-step{display:flex;align-items:flex-start;gap:10px;padding:7px 0 7px 14px;font-size:12.5px;color:var(--text-2);line-height:1.45;border-left:2px solid #dbe5f3;margin-left:8px}
+  .thinking-body{max-height:0;overflow:hidden;transition:max-height .24s ease}
+  .thinking-body.open{max-height:160px;overflow-y:auto}
+  .thinking-steps-list{margin-top:10px;border-top:1px solid var(--border-2);padding-top:8px}
+  .thinking-step{display:flex;align-items:flex-start;gap:10px;padding:5px 0 5px 12px;font-size:12px;color:var(--text-2);line-height:1.35;border-left:2px solid #dbe5f3;margin-left:8px}
   .thinking-step:last-child{border-left-color:var(--accent)}
-  .step-dot{width:7px;height:7px;min-width:7px;border-radius:50%;background:#c9d4e7;margin-top:5px}
+  .step-dot{width:7px;height:7px;min-width:7px;border-radius:50%;background:#c9d4e7;margin-top:4px}
   .step-dot.active{background:var(--accent);box-shadow:0 0 0 3px rgba(53,89,183,.12)}
 
-  .answer-card{background:#fff;border:1px solid var(--border);border-radius:18px;box-shadow:var(--shadow);padding:18px 20px 14px}
+  .answer-card{background:#fff;border:1px solid var(--border);border-radius:18px;box-shadow:var(--shadow);padding:16px 18px 12px}
   .answer-title{font-size:22px;font-weight:700;color:var(--header);margin-bottom:10px;line-height:1.2}
   .answer-summary{font-size:14px;line-height:1.7;color:var(--text-2);margin-bottom:14px}
   .answer-summary:empty{display:none}
@@ -114,12 +116,11 @@
   li{margin:4px 0;color:var(--text-2);font-size:13px}
   code{background:#eef2f8;border:1px solid #dbe3ef;border-radius:4px;padding:1px 5px;font-family:Consolas,monospace;font-size:11.5px}
 
-  .section-card{background:var(--surface-2);border:1px solid var(--border);border-radius:14px;padding:14px 14px 10px;margin:12px 0}
-  .section-title{font-size:13px;font-weight:800;color:var(--header);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px}
-
+  .section-card{background:var(--surface-2);border:1px solid var(--border);border-radius:12px;padding:12px 12px 8px;margin:10px 0}
+  .section-title{font-size:12px;font-weight:800;color:var(--header);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}
   .summary-box{background:#f7faff;border:1px solid #d6e4ff;border-radius:12px;padding:12px 14px;margin:10px 0;font-size:12.8px;line-height:1.6;color:var(--text-2)}
 
-  .tw{width:100%;overflow-x:auto;border:1px solid var(--border);border-radius:12px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.05);max-height:440px;overflow-y:auto}
+  .tw{width:100%;overflow-x:auto;border:1px solid var(--border);border-radius:12px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.05);max-height:320px;overflow-y:auto}
   .tw table{width:100%;border-collapse:collapse;font-size:12px;table-layout:auto;min-width:640px}
   .tw thead th{background:var(--header);color:#eef3ff;font-weight:600;text-transform:uppercase;letter-spacing:.05em;font-size:10px;padding:11px 14px;text-align:left;position:sticky;top:0;white-space:normal;z-index:2;border-bottom:none;line-height:1.35;vertical-align:top}
   .tw tbody td{padding:10px 14px;border-bottom:1px solid #eaecf0;vertical-align:top;font-size:12px;color:var(--text-2);white-space:normal;word-break:break-word;line-height:1.5}
@@ -130,8 +131,8 @@
   .tw .nl{color:#c0c7d3;font-style:italic}
   .rc{font-size:10px;color:#98a2b3;margin-top:5px;margin-bottom:4px;text-align:right}
 
-  .cb{border:1px solid var(--border);border-radius:12px;padding:14px;background:#fff;margin:10px 0;overflow:visible;width:100%;min-height:80px;box-shadow:0 1px 4px rgba(0,0,0,.05)}
-  .cb .vega-embed{width:100%!important}.cb .vega-embed details{display:none}.cb canvas,.cb svg{max-width:100%;height:auto}
+  .cb{border:1px solid var(--border);border-radius:12px;padding:10px;background:#fff;margin:8px 0;overflow:hidden;width:100%;min-height:auto;box-shadow:0 1px 4px rgba(0,0,0,.05)}
+  .cb .vega-embed{width:100%!important}.cb .vega-embed details{display:none}.cb canvas,.cb svg{max-width:100%;height:auto;max-height:300px!important}
 
   .technical-panel{margin-top:12px;border-top:1px solid var(--border-2);padding-top:12px}
   .technical-toggle{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);font-weight:700;cursor:pointer;padding:5px 8px;border:1px solid var(--border);background:#f8fafc;border-radius:8px}
@@ -150,8 +151,8 @@
 
   @keyframes spin{to{transform:rotate(360deg)}}
 
-  .composer{flex:0 0 76px;min-height:76px;width:100%;background:#f7f8fb;border-top:1px solid var(--border);padding:12px 16px;display:flex;align-items:center}
-  .composer-inner{display:flex;align-items:center;gap:12px;width:100%}
+  .composer{flex:0 0 76px;min-height:76px;width:100%;background:#f7f8fb;border-top:1px solid var(--border);padding:12px 16px;display:flex;align-items:center;justify-content:center}
+  .composer-inner{display:flex;align-items:center;gap:12px;width:100%;max-width:1100px}
   .composer input{flex:1 1 auto;width:100%;height:46px;border:1px solid #d3d9e4;border-radius:12px;padding:0 14px;font-size:14px;color:var(--text);background:#fff;outline:none;font-family:inherit}
   .composer input:focus{border-color:#7c8fcb;box-shadow:0 0 0 3px rgba(80,102,184,.10)}
   .composer input::placeholder{color:#98a2b3}
@@ -171,11 +172,11 @@
   .primary-btn{height:40px;border:none;border-radius:8px;background:var(--accent);color:#fff;padding:0 14px;cursor:pointer;font-family:inherit}
 
   @media(max-width:900px){
-    .body{padding:12px 10px 0}.hdr{padding:0 12px}.hdr-right{font-size:10px}.msg.u{max-width:70%}
+    .body{padding:12px 10px 0}.hdr{padding:0 12px}.hdr-right{font-size:10px}.msg.u{max-width:78%}.thread,.composer-inner,.welcome{max-width:100%}.thinking-box,.answer-card{max-width:100%}
   }
   @media(max-width:640px){
     .hdr-sub{display:none}.hdr-tools{display:none}.composer{padding:8px}.composer-inner{gap:8px}.send-btn{min-width:68px;padding:0 12px}
-    .welcome h2{font-size:18px}.card-grid{grid-template-columns:1fr 1fr}.msg.u{max-width:82%}.answer-title{font-size:18px}
+    .welcome h2{font-size:18px}.card-grid{grid-template-columns:1fr 1fr}.msg.u{max-width:88%}.answer-title{font-size:18px}.assistant-meta{padding:0}
   }
 </style>
 </head>
@@ -267,6 +268,8 @@
   var pendingCommentTarget = null;
   var lastPrompt = "";
   var turnCounter = 0;
+  var thinkingThrottleMs = 300;
+  var lastThinkingPaint = 0;
 
   function scrollB(){ requestAnimationFrame(function(){ chatBodyEl.scrollTop = chatBodyEl.scrollHeight; }); }
   function esc(s){ return s ? String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/\"/g,"&quot;") : ""; }
@@ -275,6 +278,7 @@
   function showWelcome(){ welcomeEl.classList.remove("hidden"); }
   function setComposer(disabled){ inputEl.disabled = disabled; sendBtnEl.disabled = disabled; isWaiting = disabled; }
   function clearChat(){ chatThreadEl.innerHTML = ""; chatHistory = []; lastPrompt = ""; showWelcome(); inputEl.value = ""; inputEl.focus(); }
+  function shouldPaintThinking(){ var now = Date.now(); if(now - lastThinkingPaint < thinkingThrottleMs) return false; lastThinkingPaint = now; return true; }
 
   function copyText(text,noteEl){
     navigator.clipboard.writeText(text).then(function(){ if(noteEl) noteEl.textContent="Copied"; setTimeout(function(){ if(noteEl) noteEl.textContent=""; },1500); })
@@ -403,6 +407,9 @@
     var normalized = sanitizeThinkingText(text);
     if(!normalized) return;
 
+    var prev = turn.thinkingStepsEl.lastElementChild;
+    if(prev && prev.textContent && prev.textContent.trim() === normalized.trim()) return;
+
     var step = document.createElement('div');
     step.className = 'thinking-step';
     step.innerHTML = '<span class="step-dot active"></span><span>'+esc(normalized)+'</span>';
@@ -417,7 +424,7 @@
     turn.thinkingLabelEl.textContent = shortText;
     turn.thinkingSubEl.textContent = 'Live Snowflake agent progress';
 
-    while(turn.thinkingStepsEl.children.length > 6){
+    while(turn.thinkingStepsEl.children.length > 5){
       turn.thinkingStepsEl.removeChild(turn.thinkingStepsEl.firstChild);
     }
     scrollB();
@@ -563,25 +570,24 @@
       if(!el){ if(attempts<80) setTimeout(function(){ tryRender(attempts+1); },300); return; }
       try{
         var s = typeof spec==='string' ? JSON.parse(spec) : JSON.parse(JSON.stringify(spec));
-        var containerW=el.parentElement?el.parentElement.offsetWidth-28:600;
-        if(containerW<260) containerW=600;
+        var containerW=el.parentElement?el.parentElement.offsetWidth-24:700;
+        if(containerW<260) containerW=700;
         if(!s.width||s.width==='container') s.width=containerW;
-        if(!s.height) s.height=Math.min(380,Math.round(containerW*0.55));
+        if(!s.height) s.height=280;
         if(s.autosize===undefined) s.autosize={type:'fit',contains:'padding',resize:true};
         s.config=s.config||{}; s.config.background='transparent';
         window.vegaEmbed('#'+id,s,{actions:{export:true,source:false,compiled:false,editor:false},renderer:'canvas',logLevel:0})
           .catch(function(e){ el.innerHTML='<div style="padding:12px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;"><p style="color:#991b1b;font-size:12px;margin:0;"><strong>Chart rendering failed:</strong> '+esc(e.message)+'</p></div>'; });
       } catch(e){ el.innerHTML='<p style="color:#d13438;padding:8px;font-size:11px;">Invalid chart spec: '+esc(e.message)+'</p>'; }
     }
-    setTimeout(function(){ tryRender(0); },200);
-    return '<div class="cb"><div id="'+id+'" style="min-height:380px;width:100%;"></div></div>';
+    setTimeout(function(){ tryRender(0); },120);
+    return '<div class="cb"><div id="'+id+'" style="min-height:280px;width:100%;"></div></div>';
   }
 
   function mkSql(sql,verified){
     if(!sql) return '';
-    var id='tech-'+Date.now()+Math.random().toString(36).slice(2,4);
     var badge = verified ? '<div class="meta-badge verified" style="margin-bottom:8px;display:inline-flex;">Verified query</div>' : '';
-    return badge + '<div class="sqb" id="'+id+'">'+esc(sql)+'</div>';
+    return badge + '<div class="sqb">'+esc(sql)+'</div>';
   }
 
   function sanitizeThinkingText(text){
@@ -592,7 +598,8 @@
     t = t.replace(/^According to the instructions.*$/i,'Applying response logic');
     t = t.replace(/^I should pass this question exactly as stated.*$/i,'Routing request to analytics agent');
     t = t.replace(/^Calling\s+/i,'Calling ');
-    if(t.length > 140) t = t.substring(0,137) + '...';
+    t = t.replace(/^Streaming SQL from\s+/i,'Retrieving query from ');
+    if(t.length > 120) t = t.substring(0,117) + '...';
     return t;
   }
 
@@ -709,7 +716,6 @@
     turn.answerTitleEl.textContent = model.title || 'Response';
     turn.answerSummaryEl.innerHTML = model.summary || '';
     turn.answerSectionsEl.innerHTML = (model.sections || []).map(renderSection).join('');
-
     (model.badges || []).forEach(function(b){ addMetaBadge(turn, b.label, b.cls); });
 
     if(model.technical && model.technical.length){
@@ -719,7 +725,6 @@
       turn.technicalPanelEl.classList.add('hidden');
       turn.technicalBodyEl.innerHTML = '';
     }
-
     scrollB();
   }
 
@@ -739,7 +744,7 @@
     return events;
   }
 
-  async function callApiStream(prompt){
+  async function callApiStream(){
     if(!PAT) throw new Error('Snowflake PAT is missing. Inject it at runtime instead of hardcoding it in the HTML.');
     var r=await fetch(SF_URL+AG_PATH,{
       method:'POST',
@@ -769,17 +774,10 @@
     }
     if(type==='response.thinking.delta'){
       var txt=(evt.text||'').trim();
-      if(txt) addThinkingStep(turn, txt.split('\n')[0]);
+      if(txt && shouldPaintThinking()) addThinkingStep(turn, txt.split('\n')[0]);
       return;
     }
-    if(type==='response.text.delta' || type==='response.content_block.delta' || type==='content_block_delta'){
-      var delta='';
-      if(evt.delta && evt.delta.text) delta = evt.delta.text;
-      else delta = evt.text || evt.delta || '';
-      delta = (delta || '').trim();
-      if(delta) addThinkingStep(turn, delta.split('\n')[0]);
-      return;
-    }
+    // intentionally do not paint response.text.delta / content_block deltas to the UI
   }
 
   async function sendMessage(text, regenerateMode){
@@ -797,9 +795,10 @@
     setComposer(true);
     var turn = newAssistantTurn();
     var finalResponse=null;
+    lastThinkingPaint = 0;
 
     try{
-      var response=await callApiStream(prompt);
+      var response=await callApiStream();
       var reader=response.body.getReader();
       var decoder=new TextDecoder();
       var buffer='';
@@ -832,7 +831,7 @@
       }
 
       finishThinking(turn);
-      await new Promise(function(resolve){setTimeout(resolve,80);});
+      await new Promise(function(resolve){ setTimeout(resolve, 80); });
 
       if(finalResponse){
         var botText=extractBotText(finalResponse);
