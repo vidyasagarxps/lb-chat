@@ -4,9 +4,41 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Loan Boarding Platform Analytics</title>
-<script src="https://cdn.jsdelivr.net/npm/vega@5"></script>
-<script src="https://cdn.jsdelivr.net/npm/vega-lite@5"></script>
-<script src="https://cdn.jsdelivr.net/npm/vega-embed@6"></script>
+
+<script>
+var vegaReady = new Promise(function(resolve, reject) {
+  var libs = [
+    'https://cdn.jsdelivr.net/npm/vega@5',
+    'https://cdn.jsdelivr.net/npm/vega-lite@5',
+    'https://cdn.jsdelivr.net/npm/vega-embed@6'
+  ];
+  var altLibs = [
+    'https://unpkg.com/vega@5/build/vega.min.js',
+    'https://unpkg.com/vega-lite@5/build/vega-lite.min.js',
+    'https://unpkg.com/vega-embed@6/build/vega-embed.min.js'
+  ];
+  function loadSeq(urls, fallbacks, idx) {
+    if (idx >= urls.length) { resolve(); return; }
+    var s = document.createElement('script');
+    s.src = urls[idx];
+    s.onload = function() { loadSeq(urls, fallbacks, idx + 1); };
+    s.onerror = function() {
+      if (fallbacks && fallbacks[idx]) {
+        var s2 = document.createElement('script');
+        s2.src = fallbacks[idx];
+        s2.onload = function() { loadSeq(urls, fallbacks, idx + 1); };
+        s2.onerror = function() { reject(new Error('Failed to load Vega libraries')); };
+        document.head.appendChild(s2);
+      } else {
+        reject(new Error('Failed to load: ' + urls[idx]));
+      }
+    };
+    document.head.appendChild(s);
+  }
+  loadSeq(libs, altLibs, 0);
+});
+</script>
+
 <style>
   :root{
     --bg:#f6f8fc;
@@ -82,23 +114,22 @@
   .meta-badge.verified{background:#eff6ff;color:#1d4ed8;border-color:#bfdbfe}
 
   .thinking-box,.answer-card{width:100%;max-width:980px;margin:0 auto}
-  .thinking-box{background:#fff;border:1px solid var(--border);border-radius:16px;padding:12px 16px;box-shadow:var(--shadow-sm)}
-  .thinking-header{display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none}
+  .thinking-box{background:#fff;border:1px solid var(--border);border-radius:16px;padding:14px 18px;box-shadow:var(--shadow-sm)}
+  .thinking-header{display:flex;align-items:center;gap:10px}
   .thinking-spinner{width:16px;height:16px;border:2.5px solid #dbe5f3;border-top-color:var(--blue);border-radius:50%;animation:spin .8s linear infinite;flex-shrink:0}
   .thinking-spinner.done{animation:none;border-color:var(--green);border-top-color:var(--green);background:var(--green);position:relative}
   .thinking-spinner.done::after{content:'';position:absolute;left:3.5px;top:1.5px;width:5px;height:8px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
-  .thinking-label-wrap{display:flex;flex-direction:column;min-width:0;gap:1px;flex:1}
-  .thinking-label{font-size:13px;font-weight:700;color:var(--text)}
-  .thinking-sub{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .thinking-arrow{font-size:10px;color:#98a2b3;transition:transform .15s;margin-left:auto;padding:4px}
-  .thinking-arrow.open{transform:rotate(180deg)}
+  .thinking-status{font-size:14px;font-weight:700;color:var(--accent);flex:1;min-width:0}
+  .thinking-toggle{font-size:12px;color:var(--muted);cursor:pointer;user-select:none;white-space:nowrap;display:flex;align-items:center;gap:4px;font-weight:600}
+  .thinking-toggle:hover{color:var(--text)}
+  .thinking-toggle .toggle-arrow{font-size:9px;transition:transform .15s}
+  .thinking-toggle .toggle-arrow.open{transform:rotate(180deg)}
   .thinking-body{max-height:0;overflow:hidden;transition:max-height .24s ease}
   .thinking-body.open{max-height:160px;overflow-y:auto}
-  .thinking-steps-list{margin-top:10px;border-top:1px solid var(--border-2);padding-top:8px}
-  .thinking-step{display:flex;align-items:flex-start;gap:10px;padding:5px 0 5px 12px;font-size:12px;color:var(--text-2);line-height:1.35;border-left:2px solid #dbe5f3;margin-left:8px}
-  .thinking-step:last-child{border-left-color:var(--accent)}
-  .step-dot{width:7px;height:7px;min-width:7px;border-radius:50%;background:#c9d4e7;margin-top:4px}
-  .step-dot.active{background:var(--accent);box-shadow:0 0 0 3px rgba(53,89,183,.12)}
+  .thinking-body::-webkit-scrollbar{width:4px}
+  .thinking-body::-webkit-scrollbar-track{background:transparent}
+  .thinking-body::-webkit-scrollbar-thumb{background:#d4dbe8;border-radius:3px}
+  .thinking-text{margin-top:12px;font-size:13px;line-height:1.65;color:var(--text-2);white-space:pre-wrap;word-break:break-word}
 
   .answer-card{background:#fff;border:1px solid var(--border);border-radius:18px;box-shadow:var(--shadow);padding:16px 18px 12px}
   .answer-title{font-size:22px;font-weight:700;color:var(--header);margin-bottom:10px;line-height:1.2}
@@ -118,7 +149,6 @@
 
   .section-card{background:var(--surface-2);border:1px solid var(--border);border-radius:12px;padding:12px 12px 8px;margin:10px 0}
   .section-title{font-size:12px;font-weight:800;color:var(--header);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}
-  .summary-box{background:#f7faff;border:1px solid #d6e4ff;border-radius:12px;padding:12px 14px;margin:10px 0;font-size:12.8px;line-height:1.6;color:var(--text-2)}
 
   .tw{width:100%;overflow-x:auto;border:1px solid var(--border);border-radius:12px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.05);max-height:320px;overflow-y:auto}
   .tw table{width:100%;border-collapse:collapse;font-size:12px;table-layout:auto;min-width:640px}
@@ -131,8 +161,9 @@
   .tw .nl{color:#c0c7d3;font-style:italic}
   .rc{font-size:10px;color:#98a2b3;margin-top:5px;margin-bottom:4px;text-align:right}
 
-  .cb{border:1px solid var(--border);border-radius:12px;padding:10px;background:#fff;margin:8px 0;overflow:hidden;width:100%;min-height:auto;box-shadow:0 1px 4px rgba(0,0,0,.05)}
-  .cb .vega-embed{width:100%!important}.cb .vega-embed details{display:none}.cb canvas,.cb svg{max-width:100%;height:auto;max-height:300px!important}
+  .cb{border:1px solid var(--border);border-radius:12px;padding:14px;background:#fff;margin:8px 0;overflow:hidden;width:100%;box-shadow:0 1px 4px rgba(0,0,0,.05);position:relative}
+  .cb .vega-embed{width:100%!important}
+  .cb .vega-embed summary{display:none!important}
 
   .technical-panel{margin-top:12px;border-top:1px solid var(--border-2);padding-top:12px}
   .technical-toggle{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);font-weight:700;cursor:pointer;padding:5px 8px;border:1px solid var(--border);background:#f8fafc;border-radius:8px}
@@ -148,6 +179,18 @@
   .bot-action-btn.active-like{background:#dcfce7;border-color:#86efac;color:#15803d}
   .bot-action-btn.active-dislike{background:#fee2e2;border-color:#fca5a5;color:#dc2626}
   .feedback-note{font-size:10px;color:#94a3b8;margin-left:4px}
+
+  .elicitation-box{background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:14px 16px;margin:8px 0}
+  .elicitation-label{font-size:11px;font-weight:700;color:#1d4ed8;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}
+  .elicitation-text{margin:0 0 10px;color:#1e293b;font-size:14px;line-height:1.6}
+  .elicitation-options{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+  .elicitation-option{border:1px solid #93c5fd;background:#fff;color:#1d4ed8;border-radius:10px;padding:8px 14px;font-size:13px;cursor:pointer;font-family:inherit;transition:all .15s}
+  .elicitation-option:hover{background:#dbeafe;border-color:#60a5fa}
+  .elicitation-input-row{margin-top:8px;display:flex;gap:8px}
+  .elicitation-input{flex:1;height:38px;border:1px solid #93c5fd;border-radius:8px;padding:0 12px;font-size:13px;outline:none;font-family:inherit}
+  .elicitation-input:focus{border-color:#3b82f6;box-shadow:0 0 0 2px rgba(59,130,246,.15)}
+  .elicitation-send{height:38px;border:none;border-radius:8px;background:#2563eb;color:#fff;padding:0 16px;font-size:13px;cursor:pointer;font-family:inherit}
+  .elicitation-send:hover{background:#1d4ed8}
 
   @keyframes spin{to{transform:rotate(360deg)}}
 
@@ -206,7 +249,7 @@
         <h2>Welcome to Loan Boarding Platform Analytics</h2>
         <p>Ask about KPIs, delays, missing docs, provider performance, defects, and executive red flags.</p>
         <div class="chips">
-          <button class="chip" type="button" data-prompt="Generate executive insights and action items summarizing all loan boarding dashboard KPIs">Executive summary</button>
+          <button class="chip" type="button" data-prompt="Give me today's operational summary">Today's summary</button>
           <button class="chip" type="button" data-prompt="Show the top red flags right now">Top red flags</button>
           <button class="chip" type="button" data-prompt="Summarize missing document risk">Missing docs</button>
           <button class="chip" type="button" data-prompt="Compare providers by performance and defect rate">Provider compare</button>
@@ -216,7 +259,7 @@
           <div class="card" data-prompt="Give me a full operational summary including volume, TAT, backlog, and trends"><div class="card-title">Operational Summary</div><div class="card-desc">Volume, TAT, backlog, and trend overview</div></div>
           <div class="card" data-prompt="Analyze all current exceptions including missing docs, OCR issues, and validation failures"><div class="card-title">Exception Analysis</div><div class="card-desc">Missing docs, OCR issues, and validation failures</div></div>
           <div class="card" data-prompt="Compare all providers by turnaround time, defect rate, and risk level"><div class="card-title">Provider Performance</div><div class="card-desc">Turnaround, defect %, risk comparison</div></div>
-          <div class="card" data-prompt="Show red flags and action items for loan boarding metrics needing attention"><div class="card-title">Executive Red Flags</div><div class="card-desc">High-priority issues requiring immediate attention</div></div>
+          <div class="card" data-prompt="Show me the top executive red flags that need immediate attention"><div class="card-title">Executive Red Flags</div><div class="card-desc">High-priority issues requiring immediate attention</div></div>
         </div>
       </div>
       <div id="chatThread" class="thread"></div>
@@ -244,650 +287,794 @@
 </div>
 
 <script>
-  var SF_URL = "https://ARXPS-XPANSE.snowflakecomputing.com";
-  var AG_PATH = "/api/v2/databases/XPS_AID/schemas/LOAN_BOARDING/agents/LB_PBI_AGENT:run";
-  var PAT = window.SNOWFLAKE_PAT || 'eyJraWQiOiI5MzcyNjA2OTQ3MzU5NTQiLCJhbGciOiJFUzI1NiJ9.eyJwIjoiMTQzMDE0NjUwMTM6MTQzMDE0NjY3NTciLCJpc3MiOiJTRjoxMDQzIiwiZXhwIjoxNzgxMTE4MjQ3fQ.JbOjs_9FuHuB7AfTbAgtcQAgx_tAfm5JYI2UvF-X0ggKcBC0Hi3F12eS-wF31jobIcXYeZETIlstNPKybOAKjA'
+var SF_URL="https://ARXPS-XPANSE.snowflakecomputing.com";
+var AG_PATH="/api/v2/databases/XPS_AID/schemas/LOAN_BOARDING/agents/LB_PBI_AGENT:run";
+var FB_PATH="/api/v2/databases/XPS_AID/schemas/LOAN_BOARDING/agents/LB_PBI_AGENT:feedback";
+var PAT=window.SNOWFLAKE_PAT||'eyJraWQiOiI5MzcyNjA2OTQ3MzU5NTQiLCJhbGciOiJFUzI1NiJ9.eyJwIjoiMTQzMDE0NjUwMTM6MTQzMDE0NjY3NTciLCJpc3MiOiJTRjoxMDQzIiwiZXhwIjoxNzgxMTE4MjQ3fQ.JbOjs_9FuHuB7AfTbAgtcQAgx_tAfm5JYI2UvF-X0ggKcBC0Hi3F12eS-wF31jobIcXYeZETIlstNPKybOAKjA';
+var welcomeEl=document.getElementById("welcome");
+var chatThreadEl=document.getElementById("chatThread");
+var chatBodyEl=document.getElementById("chatBody");
+var inputEl=document.getElementById("chatInput");
+var sendBtnEl=document.getElementById("sendBtn");
+var chipEls=document.querySelectorAll(".chip");
+var newChatBtn=document.getElementById("newChatBtn");
+var regenerateBtn=document.getElementById("regenerateBtn");
+var commentModal=document.getElementById("commentModal");
+var commentText=document.getElementById("commentText");
+var commentCancelBtn=document.getElementById("commentCancelBtn");
+var commentSaveBtn=document.getElementById("commentSaveBtn");
 
+var isWaiting=false;
+var chatHistory=[];
+var chartCounter=0;
+var pendingCommentTarget=null;
+var lastPrompt="";
+var turnCounter=0;
+var lastRunId="";
 
-  var welcomeEl = document.getElementById("welcome");
-  var chatThreadEl = document.getElementById("chatThread");
-  var chatBodyEl = document.getElementById("chatBody");
-  var inputEl = document.getElementById("chatInput");
-  var sendBtnEl = document.getElementById("sendBtn");
-  var chipEls = document.querySelectorAll(".chip");
-  var newChatBtn = document.getElementById("newChatBtn");
-  var regenerateBtn = document.getElementById("regenerateBtn");
-  var commentModal = document.getElementById("commentModal");
-  var commentText = document.getElementById("commentText");
-  var commentCancelBtn = document.getElementById("commentCancelBtn");
-  var commentSaveBtn = document.getElementById("commentSaveBtn");
+function scrollB(){requestAnimationFrame(function(){chatBodyEl.scrollTop=chatBodyEl.scrollHeight;});}
+function esc(s){return s?String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/\"/g,"&quot;"):"";}
+function stripHtml(h){var d=document.createElement("div");d.innerHTML=h;return(d.textContent||d.innerText||"").trim();}
+function hideWelcome(){if(!welcomeEl.classList.contains("hidden"))welcomeEl.classList.add("hidden");}
+function showWelcome(){welcomeEl.classList.remove("hidden");}
+function setComposer(disabled){inputEl.disabled=disabled;sendBtnEl.disabled=disabled;isWaiting=disabled;}
+function clearChat(){
+  chatThreadEl.innerHTML="";chatHistory=[];lastPrompt="";lastRunId="";
+  showWelcome();inputEl.value="";inputEl.focus();
+}
 
-  var isWaiting = false;
-  var chatHistory = [];
-  var chartCounter = 0;
-  var pendingCommentTarget = null;
-  var lastPrompt = "";
-  var turnCounter = 0;
-  var thinkingThrottleMs = 300;
-  var lastThinkingPaint = 0;
+function sendFeedback(msgEl,positive,message){
+  var runId=(msgEl?msgEl.getAttribute('data-run-id'):'')||lastRunId;
+  if(!runId||!PAT)return;
+  fetch(SF_URL+FB_PATH,{
+    method:'POST',
+    headers:{'Authorization':'Bearer '+PAT,'Content-Type':'application/json'},
+    body:JSON.stringify({
+      orig_request_id:runId,
+      positive:positive,
+      feedback_message:message||'',
+      categories:positive?['accurate_data']:['inaccurate_data']
+    })
+  }).then(function(r){
+    if(!r.ok)console.warn('Feedback API error:',r.status);
+  }).catch(function(e){
+    console.warn('Feedback send failed:',e);
+  });
+}
 
-  function scrollB(){ requestAnimationFrame(function(){ chatBodyEl.scrollTop = chatBodyEl.scrollHeight; }); }
-  function esc(s){ return s ? String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/\"/g,"&quot;") : ""; }
-  function stripHtml(h){ var d=document.createElement("div"); d.innerHTML=h; return (d.textContent || d.innerText || "").trim(); }
-  function hideWelcome(){ if(!welcomeEl.classList.contains("hidden")) welcomeEl.classList.add("hidden"); }
-  function showWelcome(){ welcomeEl.classList.remove("hidden"); }
-  function setComposer(disabled){ inputEl.disabled = disabled; sendBtnEl.disabled = disabled; isWaiting = disabled; }
-  function clearChat(){ chatThreadEl.innerHTML = ""; chatHistory = []; lastPrompt = ""; showWelcome(); inputEl.value = ""; inputEl.focus(); }
-  function shouldPaintThinking(){ var now = Date.now(); if(now - lastThinkingPaint < thinkingThrottleMs) return false; lastThinkingPaint = now; return true; }
+function copyText(text,noteEl){
+  navigator.clipboard.writeText(text).then(function(){if(noteEl)noteEl.textContent="Copied";setTimeout(function(){if(noteEl)noteEl.textContent="";},1500);})
+    .catch(function(){if(noteEl)noteEl.textContent="Copy failed";});
+}
 
-  function copyText(text,noteEl){
-    navigator.clipboard.writeText(text).then(function(){ if(noteEl) noteEl.textContent="Copied"; setTimeout(function(){ if(noteEl) noteEl.textContent=""; },1500); })
-      .catch(function(){ if(noteEl) noteEl.textContent="Copy failed"; });
-  }
+function downloadTextFile(filename,content,noteEl){
+  var blob=new Blob([content],{type:"text/plain;charset=utf-8;"});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement("a");a.href=url;a.download=filename;
+  document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+  if(noteEl)noteEl.textContent="Downloaded";
+  setTimeout(function(){if(noteEl)noteEl.textContent="";},1500);
+}
 
-  function downloadTextFile(filename,content,noteEl){
-    var blob = new Blob([content],{type:"text/plain;charset=utf-8;"});
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement("a"); a.href = url; a.download = filename;
-    document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
-    if(noteEl) noteEl.textContent = "Downloaded";
-    setTimeout(function(){ if(noteEl) noteEl.textContent=""; },1500);
-  }
+function exportTableFromMessage(msgEl,noteEl){
+  var table=msgEl.querySelector(".tw table");
+  if(!table){if(noteEl)noteEl.textContent="No table found";setTimeout(function(){if(noteEl)noteEl.textContent="";},1500);return;}
+  var rows=Array.from(table.querySelectorAll("tr")).map(function(tr){
+    return Array.from(tr.querySelectorAll("th,td")).map(function(cell){var t=(cell.textContent||"").trim().replace(/\"/g,'""');return '"'+t+'"';}).join(",");
+  });
+  var blob=new Blob([rows.join("\n")],{type:"text/csv;charset=utf-8;"});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement("a");a.href=url;a.download="loan_boarding_export.csv";
+  document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+  if(noteEl)noteEl.textContent="CSV exported";
+  setTimeout(function(){if(noteEl)noteEl.textContent="";},1500);
+}
 
-  function exportTableFromMessage(msgEl,noteEl){
-    var table = msgEl.querySelector(".tw table");
-    if(!table){ if(noteEl) noteEl.textContent = "No table found"; setTimeout(function(){ if(noteEl) noteEl.textContent=""; },1500); return; }
-    var rows = Array.from(table.querySelectorAll("tr")).map(function(tr){
-      return Array.from(tr.querySelectorAll("th,td")).map(function(cell){ var t=(cell.textContent||"").trim().replace(/\"/g,'""'); return '"'+t+'"'; }).join(",");
-    });
-    var blob = new Blob([rows.join("\n")], {type:"text/csv;charset=utf-8;"});
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement("a"); a.href = url; a.download = "loan_boarding_export.csv";
-    document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
-    if(noteEl) noteEl.textContent = "CSV exported";
-    setTimeout(function(){ if(noteEl) noteEl.textContent=""; },1500);
-  }
+function openCommentModal(msgEl){pendingCommentTarget=msgEl;commentText.value="";commentModal.classList.add("show");setTimeout(function(){commentText.focus();},0);}
+function closeCommentModal(){commentModal.classList.remove("show");pendingCommentTarget=null;}
 
-  function openCommentModal(msgEl){ pendingCommentTarget=msgEl; commentText.value=""; commentModal.classList.add("show"); setTimeout(function(){ commentText.focus(); },0); }
-  function closeCommentModal(){ commentModal.classList.remove("show"); pendingCommentTarget=null; }
+function addUserMsg(text){
+  var row=document.createElement("div");row.className="msg-row u-row";
+  row.innerHTML='<div class="msg u">'+esc(text)+'</div>';
+  chatThreadEl.appendChild(row);scrollB();
+}
 
-  function addUserMsg(text){
-    var row = document.createElement("div"); row.className = "msg-row u-row";
-    row.innerHTML = '<div class="msg u">'+esc(text)+'</div>';
-    chatThreadEl.appendChild(row); scrollB();
-  }
-
-  function newAssistantTurn(){
-    turnCounter += 1;
-    var turnId = 'turn-' + turnCounter + '-' + Math.random().toString(36).slice(2,6);
-    var row = document.createElement('div');
-    row.className = 'msg-row b-row';
-    row.innerHTML = [
-      '<div class="msg b" data-msg-id="'+turnId+'">',
-        '<div class="assistant-shell">',
-          '<div class="assistant-meta">',
-            '<span class="assistant-label">Loan Boarding Intelligence</span>',
-            '<div class="meta-badge agent">LB_PBI_AGENT</div>',
-            '<div class="turn-meta-badges"></div>',
+function newAssistantTurn(){
+  turnCounter+=1;
+  var turnId='turn-'+turnCounter+'-'+Math.random().toString(36).slice(2,6);
+  var row=document.createElement('div');
+  row.className='msg-row b-row';
+  row.innerHTML=[
+    '<div class="msg b" data-msg-id="'+turnId+'">',
+      '<div class="assistant-shell">',
+        '<div class="assistant-meta">',
+          '<span class="assistant-label">Loan Boarding Intelligence</span>',
+          '<div class="meta-badge agent">LB_PBI_AGENT</div>',
+          '<div class="turn-meta-badges"></div>',
+        '</div>',
+        '<div class="thinking-box">',
+          '<div class="thinking-header">',
+            '<div class="thinking-spinner" data-role="thinking-spinner"></div>',
+            '<div class="thinking-status" data-role="thinking-status">Planning the next steps</div>',
+            '<div class="thinking-toggle" data-role="thinking-toggle">',
+              'Show Details <span class="toggle-arrow open" data-role="toggle-arrow">&#9660;</span>',
+            '</div>',
           '</div>',
-          '<div class="thinking-box">',
-            '<div class="thinking-header" data-role="thinking-header">',
-              '<div class="thinking-spinner" data-role="thinking-spinner"></div>',
-              '<div class="thinking-label-wrap">',
-                '<div class="thinking-label" data-role="thinking-label">Analyzing your request...</div>',
-                '<div class="thinking-sub" data-role="thinking-sub">Routing, retrieval, and response composition in progress</div>',
-              '</div>',
-              '<span class="thinking-arrow open" data-role="thinking-arrow">&#9660;</span>',
-            '</div>',
-            '<div class="thinking-body open" data-role="thinking-body">',
-              '<div class="thinking-steps-list" data-role="thinking-steps"></div>',
-            '</div>',
-          '</div>',
-          '<div class="answer-card hidden" data-role="answer-card">',
-            '<div class="answer-title" data-role="answer-title"></div>',
-            '<div class="answer-summary" data-role="answer-summary"></div>',
-            '<div class="bot-content" data-role="answer-sections"></div>',
-            '<div class="technical-panel hidden" data-role="technical-panel">',
-              '<div class="technical-toggle" data-role="technical-toggle"><span class="ar">&#9654;</span> Technical details</div>',
-              '<div class="technical-body" data-role="technical-body"></div>',
-            '</div>',
-            '<div class="bot-actions">',
-              '<button class="bot-action-btn" data-action="like">&#128077; Like</button>',
-              '<button class="bot-action-btn" data-action="dislike">&#128078; Dislike</button>',
-              '<button class="bot-action-btn" data-action="comment">&#128172; Comment</button>',
-              '<button class="bot-action-btn" data-action="copy">&#128203; Copy</button>',
-              '<button class="bot-action-btn" data-action="export-table">&#11015; Export table</button>',
-              '<button class="bot-action-btn" data-action="download">&#128221; Download</button>',
-              '<span class="feedback-note" data-role="feedback-note"></span>',
-            '</div>',
+          '<div class="thinking-body open" data-role="thinking-body">',
+            '<div class="thinking-text" data-role="thinking-text"></div>',
           '</div>',
         '</div>',
-      '</div>'
-    ].join('');
-    chatThreadEl.appendChild(row);
+        '<div class="answer-card hidden" data-role="answer-card">',
+          '<div class="answer-title" data-role="answer-title"></div>',
+          '<div class="answer-summary" data-role="answer-summary"></div>',
+          '<div class="bot-content" data-role="answer-sections"></div>',
+          '<div class="technical-panel hidden" data-role="technical-panel">',
+            '<div class="technical-toggle" data-role="technical-toggle"><span class="ar">&#9654;</span> Technical details</div>',
+            '<div class="technical-body" data-role="technical-body"></div>',
+          '</div>',
+          '<div class="bot-actions">',
+            '<button class="bot-action-btn" data-action="like">&#128077; Like</button>',
+            '<button class="bot-action-btn" data-action="dislike">&#128078; Dislike</button>',
+            '<button class="bot-action-btn" data-action="comment">&#128172; Comment</button>',
+            '<button class="bot-action-btn" data-action="copy">&#128203; Copy</button>',
+            '<button class="bot-action-btn" data-action="export-table">&#11015; Export table</button>',
+            '<button class="bot-action-btn" data-action="download">&#128221; Download</button>',
+            '<span class="feedback-note" data-role="feedback-note"></span>',
+          '</div>',
+        '</div>',
+      '</div>',
+    '</div>'
+  ].join('');
+  chatThreadEl.appendChild(row);
 
-    var turn = {
-      id: turnId,
-      row: row,
-      msgEl: row.querySelector('.msg.b'),
-      badgesEl: row.querySelector('.turn-meta-badges'),
-      thinkingBoxEl: row.querySelector('.thinking-box'),
-      thinkingHeaderEl: row.querySelector('[data-role="thinking-header"]'),
-      thinkingSpinnerEl: row.querySelector('[data-role="thinking-spinner"]'),
-      thinkingLabelEl: row.querySelector('[data-role="thinking-label"]'),
-      thinkingSubEl: row.querySelector('[data-role="thinking-sub"]'),
-      thinkingArrowEl: row.querySelector('[data-role="thinking-arrow"]'),
-      thinkingBodyEl: row.querySelector('[data-role="thinking-body"]'),
-      thinkingStepsEl: row.querySelector('[data-role="thinking-steps"]'),
-      answerCardEl: row.querySelector('[data-role="answer-card"]'),
-      answerTitleEl: row.querySelector('[data-role="answer-title"]'),
-      answerSummaryEl: row.querySelector('[data-role="answer-summary"]'),
-      answerSectionsEl: row.querySelector('[data-role="answer-sections"]'),
-      technicalPanelEl: row.querySelector('[data-role="technical-panel"]'),
-      technicalToggleEl: row.querySelector('[data-role="technical-toggle"]'),
-      technicalBodyEl: row.querySelector('[data-role="technical-body"]')
-    };
+  var turn={
+    id:turnId,row:row,
+    msgEl:row.querySelector('.msg.b'),
+    badgesEl:row.querySelector('.turn-meta-badges'),
+    thinkingBoxEl:row.querySelector('.thinking-box'),
+    thinkingSpinnerEl:row.querySelector('[data-role="thinking-spinner"]'),
+    thinkingStatusEl:row.querySelector('[data-role="thinking-status"]'),
+    thinkingToggleEl:row.querySelector('[data-role="thinking-toggle"]'),
+    toggleArrowEl:row.querySelector('[data-role="toggle-arrow"]'),
+    thinkingBodyEl:row.querySelector('[data-role="thinking-body"]'),
+    thinkingTextEl:row.querySelector('[data-role="thinking-text"]'),
+    answerCardEl:row.querySelector('[data-role="answer-card"]'),
+    answerTitleEl:row.querySelector('[data-role="answer-title"]'),
+    answerSummaryEl:row.querySelector('[data-role="answer-summary"]'),
+    answerSectionsEl:row.querySelector('[data-role="answer-sections"]'),
+    technicalPanelEl:row.querySelector('[data-role="technical-panel"]'),
+    technicalToggleEl:row.querySelector('[data-role="technical-toggle"]'),
+    technicalBodyEl:row.querySelector('[data-role="technical-body"]'),
+    thinkingBuffer:'',
+    textBuffer:''
+  };
 
-    turn.thinkingHeaderEl.addEventListener('click', function(){
-      turn.thinkingBodyEl.classList.toggle('open');
-      turn.thinkingArrowEl.classList.toggle('open');
-    });
-
-    turn.technicalToggleEl.addEventListener('click', function(){
-      turn.technicalBodyEl.classList.toggle('v');
-      turn.technicalToggleEl.querySelector('.ar').classList.toggle('op');
-    });
-
-    scrollB();
-    return turn;
-  }
-
-  function addThinkingStep(turn, text){
-    if(!turn || !turn.thinkingStepsEl || !text) return;
-    var normalized = sanitizeThinkingText(text);
-    if(!normalized) return;
-
-    var prev = turn.thinkingStepsEl.lastElementChild;
-    if(prev && prev.textContent && prev.textContent.trim() === normalized.trim()) return;
-
-    var step = document.createElement('div');
-    step.className = 'thinking-step';
-    step.innerHTML = '<span class="step-dot active"></span><span>'+esc(normalized)+'</span>';
-
-    Array.from(turn.thinkingStepsEl.children).forEach(function(child){
-      var dot = child.querySelector('.step-dot');
-      if(dot) dot.classList.remove('active');
-    });
-
-    turn.thinkingStepsEl.appendChild(step);
-    var shortText = normalized.length > 90 ? normalized.substring(0,87) + '...' : normalized;
-    turn.thinkingLabelEl.textContent = shortText;
-    turn.thinkingSubEl.textContent = 'Live Snowflake agent progress';
-
-    while(turn.thinkingStepsEl.children.length > 5){
-      turn.thinkingStepsEl.removeChild(turn.thinkingStepsEl.firstChild);
+  turn.thinkingToggleEl.addEventListener('click',function(){
+    var isOpen=turn.thinkingBodyEl.classList.toggle('open');
+    if(isOpen){
+      turn.toggleArrowEl.classList.add('open');
+      turn.thinkingToggleEl.innerHTML='Hide Details <span class="toggle-arrow open" data-role="toggle-arrow">&#9660;</span>';
+    }else{
+      turn.toggleArrowEl.classList.remove('open');
+      turn.thinkingToggleEl.innerHTML='Show Details <span class="toggle-arrow" data-role="toggle-arrow">&#9660;</span>';
     }
-    scrollB();
-  }
+    turn.toggleArrowEl=turn.thinkingToggleEl.querySelector('[data-role="toggle-arrow"]');
+  });
 
-  function finishThinking(turn){
-    if(!turn) return;
-    turn.thinkingSpinnerEl.classList.add('done');
-    turn.thinkingLabelEl.textContent = 'Analysis complete';
-    turn.thinkingSubEl.textContent = 'Response rendered below';
-    turn.thinkingBodyEl.classList.remove('open');
-    turn.thinkingArrowEl.classList.remove('open');
-  }
+  turn.technicalToggleEl.addEventListener('click',function(){
+    turn.technicalBodyEl.classList.toggle('v');
+    turn.technicalToggleEl.querySelector('.ar').classList.toggle('op');
+  });
 
-  function addMetaBadge(turn, label, cls){
-    if(!turn || !turn.badgesEl || !label) return;
-    var existing = Array.from(turn.badgesEl.querySelectorAll('.meta-badge')).some(function(el){ return el.textContent.trim() === label.trim(); });
-    if(existing) return;
-    var badge = document.createElement('div');
-    badge.className = 'meta-badge ' + (cls || '');
-    badge.textContent = label;
-    turn.badgesEl.appendChild(badge);
-  }
+  scrollB();
+  return turn;
+}
 
-  function inF(s){
-    var h = esc(s);
-    h = h.replace(/\*\*\*(.*?)\*\*\*/g,'<strong><em>$1</em></strong>');
-    h = h.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>');
-    h = h.replace(/__(.*?)__/g,'<strong>$1</strong>');
-    h = h.replace(/\*(.*?)\*/g,'<em>$1</em>');
-    h = h.replace(/_(.*?)_/g,'<em>$1</em>');
-    h = h.replace(/`(.*?)`/g,'<code>$1</code>');
-    return h;
-  }
+function updateThinkingStatus(turn,statusText){
+  if(!turn||!turn.thinkingStatusEl||!statusText)return;
+  turn.thinkingStatusEl.textContent=statusText;scrollB();
+}
 
-  function pMdT(lines,si){
-    var rows=[],idx=si;
-    while(idx<lines.length){
-      var t=lines[idx].trim();
-      if(!(t.charAt(0)==='|'&&t.charAt(t.length-1)==='|'&&t.split('|').length>=3)) break;
-      if(!/^\|[\s\-:|]+\|$/.test(t)){
-        var cells=t.split('|'); cells=cells.slice(1,cells.length-1);
-        for(var c=0;c<cells.length;c++) cells[c]=cells[c].trim();
-        rows.push(cells);
-      }
-      idx++;
+function appendThinkingText(turn,text){
+  if(!turn||!turn.thinkingTextEl||!text)return;
+  turn.thinkingBuffer+=text;
+  turn.thinkingTextEl.textContent=turn.thinkingBuffer;
+  turn.thinkingBodyEl.scrollTop=turn.thinkingBodyEl.scrollHeight;scrollB();
+}
+
+function finishThinking(turn){
+  if(!turn)return;
+  turn.thinkingSpinnerEl.classList.add('done');
+  updateThinkingStatus(turn,'Analysis complete');
+  turn.thinkingBodyEl.classList.remove('open');
+  turn.thinkingToggleEl.innerHTML='Show Details <span class="toggle-arrow" data-role="toggle-arrow">&#9660;</span>';
+  turn.toggleArrowEl=turn.thinkingToggleEl.querySelector('[data-role="toggle-arrow"]');
+}
+
+function addMetaBadge(turn,label,cls){
+  if(!turn||!turn.badgesEl||!label)return;
+  var existing=Array.from(turn.badgesEl.querySelectorAll('.meta-badge')).some(function(el){return el.textContent.trim()===label.trim();});
+  if(existing)return;
+  var badge=document.createElement('div');
+  badge.className='meta-badge '+(cls||'');
+  badge.textContent=label;
+  turn.badgesEl.appendChild(badge);
+}
+
+function inF(s){
+  var h=esc(s);
+  h=h.replace(/\*\*\*(.*?)\*\*\*/g,'<strong><em>$1</em></strong>');
+  h=h.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>');
+  h=h.replace(/__(.*?)__/g,'<strong>$1</strong>');
+  h=h.replace(/\*(.*?)\*/g,'<em>$1</em>');
+  h=h.replace(/_(.*?)_/g,'<em>$1</em>');
+  h=h.replace(/`(.*?)`/g,'<code>$1</code>');
+  return h;
+}
+
+function pMdT(lines,si){
+  var rows=[],idx=si;
+  while(idx<lines.length){
+    var t=lines[idx].trim();
+    if(!(t.charAt(0)==='|'&&t.charAt(t.length-1)==='|'&&t.split('|').length>=3))break;
+    if(!/^\|[\s\-:|]+\|$/.test(t)){
+      var cells=t.split('|');cells=cells.slice(1,cells.length-1);
+      for(var c=0;c<cells.length;c++)cells[c]=cells[c].trim();
+      rows.push(cells);
     }
-    if(rows.length<2) return {h:'',e:si};
-    var numCols={};
-    for(var c2=0;c2<rows[0].length;c2++){
-      var allNum=true;
-      for(var r=1;r<rows.length;r++){
-        if(rows[r]&&rows[r][c2]){
-          var tv=rows[r][c2].replace(/,/g,'').replace(/%/g,'').replace(/\$/g,'').trim();
-          if(tv&&tv!=='—'&&tv!=='-'&&tv!=='N/A'&&isNaN(Number(tv))){ allNum=false; break; }
-        }
-      }
-      numCols[c2]=allNum;
-    }
-    var h='<div class="tw"><table><thead><tr>';
-    for(var c3=0;c3<rows[0].length;c3++) h+='<th'+(numCols[c3]?' class="rn"':'')+'>'+inF(rows[0][c3])+'</th>';
-    h+='</tr></thead><tbody>';
-    for(var r2=1;r2<rows.length;r2++){
-      h+='<tr>';
-      for(var c4=0;c4<rows[0].length;c4++){
-        var v=(rows[r2]&&rows[r2][c4]!==undefined)?rows[r2][c4]:'';
-        if(!v||v==='—'||v==='-'||v==='N/A') h+='<td class="nl">—</td>';
-        else if(numCols[c4]) h+='<td class="rn">'+inF(v)+'</td>';
-        else h+='<td>'+inF(v)+'</td>';
-      }
-      h+='</tr>';
-    }
-    h+='</tbody></table></div><div class="rc">'+(rows.length-1)+' rows</div>';
-    return {h:h,e:idx};
+    idx++;
   }
-
-  function fmtMd(text){
-    if(!text) return '';
-    var lines=text.split('\n'),html='',listStack=[],i=0;
-    function closeAllLists(){ while(listStack.length>0){ html+='</'+listStack.pop()+'>'; } }
-    while(i<lines.length){
-      var ln=lines[i],tr=ln.trim();
-      if(tr.charAt(0)==='|'&&tr.charAt(tr.length-1)==='|'&&tr.split('|').length>=3){
-        closeAllLists(); var res=pMdT(lines,i); if(res.h){ html+=res.h; i=res.e; continue; }
+  if(rows.length<2)return{h:'',e:si};
+  var numCols={};
+  for(var c2=0;c2<rows[0].length;c2++){
+    var allNum=true;
+    for(var r=1;r<rows.length;r++){
+      if(rows[r]&&rows[r][c2]){
+        var tv=rows[r][c2].replace(/,/g,'').replace(/%/g,'').replace(/\$/g,'').trim();
+        if(tv&&tv!=='—'&&tv!=='-'&&tv!=='N/A'&&isNaN(Number(tv))){allNum=false;break;}
       }
-      if(tr==='---'||tr==='***'||tr==='___'){ closeAllLists(); html+='<hr>'; i++; continue; }
-      if(/^#{1,4}\s+/.test(tr)){
-        closeAllLists(); var level=tr.match(/^(#+)/)[1].length; var ht=tr.replace(/^#{1,4}\s+/,'');
-        if(level===1) html+='<div class="section-card"><div class="section-title">'+inF(ht)+'</div></div>';
-        else html+='<div class="section-title">'+inF(ht)+'</div>';
-      } else if(/^\s*[-*+]\s+/.test(ln)){
-        if(listStack.length===0){ html+='<ul>'; listStack.push('ul'); }
-        html+='<li>'+inF(ln.replace(/^\s*[-*+]\s+/,''))+'</li>';
-      } else if(/^\s*\d+[.)\]]\s+/.test(ln)){
-        if(listStack.length===0||listStack[listStack.length-1]!=='ol'){ closeAllLists(); html+='<ol>'; listStack.push('ol'); }
-        html+='<li>'+inF(ln.replace(/^\s*\d+[.)\]]\s+/,''))+'</li>';
-      } else if(tr===''){ closeAllLists(); }
-      else { closeAllLists(); html+='<p>'+inF(tr)+'</p>'; }
-      i++;
     }
-    closeAllLists();
-    return html;
+    numCols[c2]=allNum;
   }
-
-  function mkRs(rs){
-    if(!rs||!rs.data||!rs.data.length) return '';
-    var cols=[],types=[];
-    if(rs.resultSetMetaData&&rs.resultSetMetaData.rowType&&rs.resultSetMetaData.rowType.length){
-      for(var i=0;i<rs.resultSetMetaData.rowType.length;i++){ cols.push(rs.resultSetMetaData.rowType[i].name||('Col '+(i+1))); types.push(rs.resultSetMetaData.rowType[i].type||''); }
-    } else { for(var j=0;j<rs.data[0].length;j++){ cols.push('Col '+(j+1)); types.push(''); } }
-    var nt=['NUMBER','DECIMAL','NUMERIC','INT','INTEGER','BIGINT','SMALLINT','TINYINT','FLOAT','DOUBLE','REAL','FIXED'];
-    var t='<div class="tw"><table><thead><tr>';
-    for(var c=0;c<cols.length;c++) t+='<th'+(nt.indexOf(types[c])>-1?' class="rn"':'')+'>'+esc(cols[c].replace(/_/g,' '))+'</th>';
-    t+='</tr></thead><tbody>';
-    for(var r=0;r<rs.data.length;r++){
-      t+='<tr>';
-      for(var c2=0;c2<rs.data[r].length;c2++){
-        var v=rs.data[r][c2], isN=nt.indexOf(types[c2])>-1;
-        if(v===null||v===undefined) t+='<td class="nl">—</td>';
-        else {
-          var s=String(v), num=Number(s);
-          if(isN||(!isNaN(num)&&s!==''&&s.indexOf(' ')===-1&&s.length<18)) t+='<td class="rn">'+(s.indexOf('.')>-1?parseFloat(num.toFixed(2)).toLocaleString():num.toLocaleString())+'</td>';
-          else t+='<td>'+esc(s)+'</td>';
-        }
-      }
-      t+='</tr>';
+  var h='<div class="tw"><table><thead><tr>';
+  for(var c3=0;c3<rows[0].length;c3++)h+='<th'+(numCols[c3]?' class="rn"':'')+'>'+inF(rows[0][c3])+'</th>';
+  h+='</tr></thead><tbody>';
+  for(var r2=1;r2<rows.length;r2++){
+    h+='<tr>';
+    for(var c4=0;c4<rows[0].length;c4++){
+      var v=(rows[r2]&&rows[r2][c4]!==undefined)?rows[r2][c4]:'';
+      if(!v||v==='—'||v==='-'||v==='N/A')h+='<td class="nl">—</td>';
+      else if(numCols[c4])h+='<td class="rn">'+inF(v)+'</td>';
+      else h+='<td>'+inF(v)+'</td>';
     }
-    t+='</tbody></table></div>';
-    if(rs.resultSetMetaData&&rs.resultSetMetaData.numRows) t+='<div class="rc">'+Number(rs.resultSetMetaData.numRows).toLocaleString()+' rows</div>';
-    return t;
+    h+='</tr>';
   }
+  h+='</tbody></table></div><div class="rc">'+(rows.length-1)+' rows</div>';
+  return{h:h,e:idx};
+}
 
-  function mkCh(spec){
-    var id='ch-'+(++chartCounter);
-    if(!spec) return '<div class="cb" style="padding:10px;color:#999;font-size:11px;">No chart data</div>';
-    function tryRender(attempts){
-      if(!window.vegaEmbed){
-        if(attempts<80) setTimeout(function(){ tryRender(attempts+1); },400);
-        else { var el=document.getElementById(id); if(el) el.innerHTML='<p style="color:#d13438;padding:8px;font-size:11px;">Vega library failed to load.</p>'; }
-        return;
+function fmtMd(text){
+  if(!text)return '';
+  var lines=text.split('\n'),html='',listStack=[],i=0;
+  function closeAllLists(){while(listStack.length>0){html+='</'+listStack.pop()+'>';}}
+  while(i<lines.length){
+    var ln=lines[i],tr=ln.trim();
+    if(tr.charAt(0)==='|'&&tr.charAt(tr.length-1)==='|'&&tr.split('|').length>=3){
+      closeAllLists();var res=pMdT(lines,i);if(res.h){html+=res.h;i=res.e;continue;}
+    }
+    if(tr==='---'||tr==='***'||tr==='___'){closeAllLists();html+='<hr>';i++;continue;}
+    if(/^#{1,4}\s+/.test(tr)){
+      closeAllLists();var level=tr.match(/^(#+)/)[1].length;var ht=tr.replace(/^#{1,4}\s+/,'');
+      if(level===1)html+='<div class="section-card"><div class="section-title">'+inF(ht)+'</div></div>';
+      else html+='<div class="section-title">'+inF(ht)+'</div>';
+    }else if(/^\s*[-*+]\s+/.test(ln)){
+      if(listStack.length===0){html+='<ul>';listStack.push('ul');}
+      html+='<li>'+inF(ln.replace(/^\s*[-*+]\s+/,''))+'</li>';
+    }else if(/^\s*\d+[.)\]]\s+/.test(ln)){
+      if(listStack.length===0||listStack[listStack.length-1]!=='ol'){closeAllLists();html+='<ol>';listStack.push('ol');}
+      html+='<li>'+inF(ln.replace(/^\s*\d+[.)\]]\s+/,''))+'</li>';
+    }else if(tr===''){closeAllLists();}
+    else{closeAllLists();html+='<p>'+inF(tr)+'</p>';}
+    i++;
+  }
+  closeAllLists();
+  return html;
+}
+
+function mkRs(rs){
+  if(!rs||!rs.data||!rs.data.length)return '';
+  var cols=[],types=[];
+  if(rs.resultSetMetaData&&rs.resultSetMetaData.rowType&&rs.resultSetMetaData.rowType.length){
+    for(var i=0;i<rs.resultSetMetaData.rowType.length;i++){
+      cols.push(rs.resultSetMetaData.rowType[i].name||('Col '+(i+1)));
+      types.push(rs.resultSetMetaData.rowType[i].type||'');
+    }
+  }else{
+    for(var j=0;j<rs.data[0].length;j++){cols.push('Col '+(j+1));types.push('');}
+  }
+  var nt=['NUMBER','DECIMAL','NUMERIC','INT','INTEGER','BIGINT','SMALLINT','TINYINT','FLOAT','DOUBLE','REAL','FIXED'];
+  var t='<div class="tw"><table><thead><tr>';
+  for(var c=0;c<cols.length;c++)t+='<th'+(nt.indexOf(types[c])>-1?' class="rn"':'')+'>'+esc(cols[c].replace(/_/g,' '))+'</th>';
+  t+='</tr></thead><tbody>';
+  for(var r=0;r<rs.data.length;r++){
+    t+='<tr>';
+    for(var c2=0;c2<rs.data[r].length;c2++){
+      var v=rs.data[r][c2],isN=nt.indexOf(types[c2])>-1;
+      if(v===null||v===undefined)t+='<td class="nl">—</td>';
+      else{
+        var s=String(v),num=Number(s);
+        if(isN||(!isNaN(num)&&s!==''&&s.indexOf(' ')===-1&&s.length<18))
+          t+='<td class="rn">'+(s.indexOf('.')>-1?parseFloat(num.toFixed(2)).toLocaleString():num.toLocaleString())+'</td>';
+        else t+='<td>'+esc(s)+'</td>';
       }
-      var el=document.getElementById(id);
-      if(!el){ if(attempts<80) setTimeout(function(){ tryRender(attempts+1); },300); return; }
+    }
+    t+='</tr>';
+  }
+  t+='</tbody></table></div>';
+  if(rs.resultSetMetaData&&rs.resultSetMetaData.numRows)t+='<div class="rc">'+Number(rs.resultSetMetaData.numRows).toLocaleString()+' rows</div>';
+  return t;
+}
+
+function mkCh(spec){
+  var chartId='ch-'+(++chartCounter);
+  if(!spec)return '<div class="cb" style="padding:10px;color:#999;font-size:11px;">No chart data</div>';
+  setTimeout(function(){
+    var container=document.getElementById(chartId);
+    if(!container)return;
+    vegaReady.then(function(){
       try{
-        var s = typeof spec==='string' ? JSON.parse(spec) : JSON.parse(JSON.stringify(spec));
-        var containerW=el.parentElement?el.parentElement.offsetWidth-24:700;
-        if(containerW<260) containerW=700;
-        if(!s.width||s.width==='container') s.width=containerW;
-        if(!s.height) s.height=280;
-        if(s.autosize===undefined) s.autosize={type:'fit',contains:'padding',resize:true};
-        s.config=s.config||{}; s.config.background='transparent';
-        window.vegaEmbed('#'+id,s,{actions:{export:true,source:false,compiled:false,editor:false},renderer:'canvas',logLevel:0})
-          .catch(function(e){ el.innerHTML='<div style="padding:12px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;"><p style="color:#991b1b;font-size:12px;margin:0;"><strong>Chart rendering failed:</strong> '+esc(e.message)+'</p></div>'; });
-      } catch(e){ el.innerHTML='<p style="color:#d13438;padding:8px;font-size:11px;">Invalid chart spec: '+esc(e.message)+'</p>'; }
-    }
-    setTimeout(function(){ tryRender(0); },120);
-    return '<div class="cb"><div id="'+id+'" style="min-height:280px;width:100%;"></div></div>';
-  }
-
-  function mkSql(sql,verified){
-    if(!sql) return '';
-    var badge = verified ? '<div class="meta-badge verified" style="margin-bottom:8px;display:inline-flex;">Verified query</div>' : '';
-    return badge + '<div class="sqb">'+esc(sql)+'</div>';
-  }
-
-  function sanitizeThinkingText(text){
-    if(!text) return '';
-    var t = String(text).replace(/\s+/g,' ').trim();
-    if(!t) return '';
-    t = t.replace(/^The user is asking for\s*/i,'Interpreting request: ');
-    t = t.replace(/^According to the instructions.*$/i,'Applying response logic');
-    t = t.replace(/^I should pass this question exactly as stated.*$/i,'Routing request to analytics agent');
-    t = t.replace(/^Calling\s+/i,'Calling ');
-    t = t.replace(/^Streaming SQL from\s+/i,'Retrieving query from ');
-    if(t.length > 120) t = t.substring(0,117) + '...';
-    return t;
-  }
-
-  function extractBotText(d){
-    var text=''; if(!d||!d.content) return text;
-    for(var i=0;i<d.content.length;i++){
-      var it=d.content[i];
-      if(it.type==='text'&&it.text) text+=it.text+'\n';
-      else if(it.type==='tool_result'&&it.tool_result&&it.tool_result.content){
-        for(var j=0;j<it.tool_result.content.length;j++){
-          var c=it.tool_result.content[j];
-          if(c.type==='json'&&c.json&&c.json.text) text+=c.json.text+'\n';
-          else if(c.type==='text'&&c.text) text+=c.text+'\n';
-        }
+        var parsed=typeof spec==='string'?JSON.parse(spec):JSON.parse(JSON.stringify(spec));
+        if(!parsed.width)parsed.width='container';
+        if(!parsed.height)parsed.height=280;
+        if(!parsed.config)parsed.config={view:{stroke:null}};
+        window.vegaEmbed('#'+chartId,parsed,{actions:false,renderer:'svg'}).catch(function(err){
+          container.innerHTML='<div style="padding:12px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;"><p style="color:#991b1b;font-size:12px;margin:0;"><strong>Chart error:</strong> '+esc(err.message)+'</p></div>';
+        });
+      }catch(err){
+        container.innerHTML='<div style="padding:12px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;"><p style="color:#991b1b;font-size:12px;margin:0;"><strong>Chart error:</strong> '+esc(err.message)+'</p></div>';
       }
-    }
-    return text.trim();
-  }
-
-  function buildTurnModel(agentMsg){
-    var model = {
-      title: 'Response',
-      summary: '',
-      sections: [],
-      suggestions: [],
-      technical: [],
-      badges: []
-    };
-    if(!agentMsg || !agentMsg.content) return model;
-
-    var content = agentMsg.content;
-    var seenSQL = {};
-    var verified = null;
-
-    for(var i=0;i<content.length;i++){
-      var item=content[i];
-      if(item.type==='tool_result' && item.tool_result && item.tool_result.content){
-        for(var j=0;j<item.tool_result.content.length;j++){
-          var c=item.tool_result.content[j];
-          if(c.type==='json' && c.json && c.json.verified_query_used!==undefined) verified = c.json.verified_query_used;
-        }
-      }
-    }
-
-    if(verified===true) model.badges.push({label:'1 verified query', cls:'verified'});
-    model.badges.push({label:'Retrieved data', cls:'success'});
-
-    for(var k=0;k<content.length;k++){
-      var it=content[k];
-      if(it.type==='thinking' || it.type==='tool_use') continue;
-
-      if(it.type==='text' && it.text && !it.is_elicitation){
-        if(!model.summary){ model.summary = fmtMd(it.text); model.title = deriveTitle(it.text); }
-        else model.sections.push({type:'text', title:'Additional context', html:fmtMd(it.text)});
-      }
-      else if(it.type==='chart' && it.chart){
-        model.sections.push({type:'chart', title:'Chart', html:mkCh(it.chart.chart_spec)});
-      }
-      else if(it.type==='table' && it.table){
-        model.sections.push({type:'table', title:it.table.title || 'Table', html:it.table.result_set ? mkRs(it.table.result_set) : ''});
-      }
-      else if(it.type==='sql' && it.statement){
-        var key = it.statement.replace(/\s+/g,' ').trim();
-        if(!seenSQL[key]){ seenSQL[key]=true; model.technical.push(mkSql(it.statement, verified===true || !!it.verified_query_used)); }
-      }
-      else if(it.type==='suggestions' && Array.isArray(it.suggestions) && it.suggestions.length){
-        var sugHtml = '<ul>' + it.suggestions.map(function(s){ return '<li>'+esc(s)+'</li>'; }).join('') + '</ul>';
-        model.sections.push({type:'suggestions', title:'Suggested follow-ups', html:sugHtml});
-      }
-      else if(it.type==='tool_result' && it.tool_result && it.tool_result.content){
-        for(var x=0;x<it.tool_result.content.length;x++){
-          var tc=it.tool_result.content[x];
-          if(tc.type==='text' && tc.text){
-            if(!model.summary) model.summary = fmtMd(tc.text);
-            else model.sections.push({type:'text', title:'Details', html:fmtMd(tc.text)});
-          }
-          else if(tc.type==='json' && tc.json){
-            var js=tc.json;
-            if(js.text){
-              if(!model.summary) model.summary = fmtMd(js.text);
-              else model.sections.push({type:'text', title:'Details', html:fmtMd(js.text)});
-            }
-            if(js.sql){ var sn=js.sql.replace(/\s+/g,' ').trim(); if(!seenSQL[sn]){ seenSQL[sn]=true; model.technical.push(mkSql(js.sql, verified===true)); } }
-            if(js.statement){ var sn2=js.statement.replace(/\s+/g,' ').trim(); if(!seenSQL[sn2]){ seenSQL[sn2]=true; model.technical.push(mkSql(js.statement, verified===true)); } }
-            if(js.result_set) model.sections.push({type:'table', title:js.title || 'Table', html:mkRs(js.result_set)});
-            if(js.resultSet) model.sections.push({type:'table', title:js.title || 'Table', html:mkRs(js.resultSet)});
-            if(js.chart_spec) model.sections.push({type:'chart', title:js.title || 'Chart', html:mkCh(js.chart_spec)});
-            if(js.chartSpec) model.sections.push({type:'chart', title:js.title || 'Chart', html:mkCh(js.chartSpec)});
-            if(js.vega_spec) model.sections.push({type:'chart', title:js.title || 'Chart', html:mkCh(js.vega_spec)});
-            if(js.spec) model.sections.push({type:'chart', title:js.title || 'Chart', html:mkCh(js.spec)});
-          }
-        }
-      }
-    }
-
-    if(!model.summary) model.summary = '<p>No summary returned.</p>';
-    return model;
-  }
-
-  function deriveTitle(text){
-    if(!text) return 'Response';
-    var first = text.split('\n').find(function(line){ return line.trim(); }) || 'Response';
-    first = first.replace(/^#+\s*/,'').trim();
-    if(first.length > 64) first = first.substring(0,61) + '...';
-    return first;
-  }
-
-  function renderSection(section){
-    return '<div class="section-card"><div class="section-title">'+esc(section.title || 'Section')+'</div>'+section.html+'</div>';
-  }
-
-  function renderTurnModel(turn, model){
-    turn.answerCardEl.classList.remove('hidden');
-    turn.answerTitleEl.textContent = model.title || 'Response';
-    turn.answerSummaryEl.innerHTML = model.summary || '';
-    turn.answerSectionsEl.innerHTML = (model.sections || []).map(renderSection).join('');
-    (model.badges || []).forEach(function(b){ addMetaBadge(turn, b.label, b.cls); });
-
-    if(model.technical && model.technical.length){
-      turn.technicalPanelEl.classList.remove('hidden');
-      turn.technicalBodyEl.innerHTML = model.technical.join('');
-    } else {
-      turn.technicalPanelEl.classList.add('hidden');
-      turn.technicalBodyEl.innerHTML = '';
-    }
-    scrollB();
-  }
-
-  function parseSSEEvents(text){
-    var events=[]; var blocks=text.split('\n\n');
-    for(var i=0;i<blocks.length;i++){
-      var block=blocks[i].trim(); if(!block) continue;
-      var eventType=''; var dataLine=''; var lines=block.split('\n');
-      for(var j=0;j<lines.length;j++){
-        var ln=lines[j];
-        if(ln.indexOf('event:')===0) eventType=ln.substring(6).trim();
-        else if(ln.indexOf('data:')===0) dataLine+=ln.substring(5).trim();
-      }
-      if(dataLine==='[DONE]') events.push({_sseType:'done',done:true});
-      else if(dataLine){ try{ var parsed=JSON.parse(dataLine); parsed._sseType=eventType||'unknown'; events.push(parsed); }catch(e){} }
-    }
-    return events;
-  }
-
-  async function callApiStream(){
-    if(!PAT) throw new Error('Snowflake PAT is missing. Inject it at runtime instead of hardcoding it in the HTML.');
-    var r=await fetch(SF_URL+AG_PATH,{
-      method:'POST',
-      headers:{'Authorization':'Bearer '+PAT,'Content-Type':'application/json','Accept':'text/event-stream'},
-      body:JSON.stringify({messages:chatHistory,stream:true})
+    }).catch(function(err){
+      container.innerHTML='<div style="padding:12px;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;"><p style="color:#9a3412;font-size:12px;margin:0;"><strong>Chart libraries unavailable:</strong> '+esc(err.message)+'</p></div>';
     });
-    if(!r.ok) throw new Error('API '+r.status+': '+await r.text());
-    return r;
+  },150);
+  return '<div class="cb" id="'+chartId+'" style="min-height:100px;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:12px;">Loading chart...</div>';
+}
+
+function mkSql(sql,verified){
+  if(!sql)return '';
+  var badge=verified?'<div class="meta-badge verified" style="margin-bottom:8px;display:inline-flex;">Verified query</div>':'';
+  return badge+'<div class="sqb">'+esc(sql)+'</div>';
+}
+
+function buildElicitationHtml(text){
+  var lines=text.split('\n').filter(function(l){return l.trim();});
+  var options=[];
+  var questionText='';
+  for(var i=0;i<lines.length;i++){
+    var line=lines[i].trim();
+    var optionMatch=line.match(/^\d+[.)]\s*(.+)/)||line.match(/^[-*]\s*(.+)/);
+    if(optionMatch){
+      options.push(optionMatch[1].trim());
+    }else{
+      questionText+=line+' ';
+    }
+  }
+  var html='<div class="elicitation-box">';
+  html+='<div class="elicitation-label">Clarification needed</div>';
+  if(questionText.trim()){
+    html+='<p class="elicitation-text">'+inF(questionText.trim())+'</p>';
+  }
+  if(options.length>0){
+    html+='<div class="elicitation-options">';
+    for(var j=0;j<options.length;j++){
+      html+='<button class="elicitation-option" data-option="'+esc(options[j])+'">'+esc(options[j])+'</button>';
+    }
+    html+='</div>';
+  }else{
+    html+='<div class="elicitation-input-row">';
+    html+='<input type="text" class="elicitation-input" placeholder="Type your answer...">';
+    html+='<button class="elicitation-send">Reply</button>';
+    html+='</div>';
+  }
+  html+='</div>';
+  return html;
+}
+
+function extractBotText(d){
+  var text='';if(!d||!d.content)return text;
+  for(var i=0;i<d.content.length;i++){
+    var it=d.content[i];
+    if(it.type==='text'&&it.text)text+=it.text+'\n';
+    else if(it.type==='tool_result'&&it.tool_result&&it.tool_result.content){
+      for(var j=0;j<it.tool_result.content.length;j++){
+        var c=it.tool_result.content[j];
+        if(c.type==='json'&&c.json&&c.json.text)text+=c.json.text+'\n';
+        else if(c.type==='text'&&c.text)text+=c.text+'\n';
+      }
+    }
+  }
+  return text.trim();
+}
+
+function buildTurnModel(agentMsg){
+  var model={title:'',sections:[],technical:[],badges:[]};
+  if(!agentMsg||!agentMsg.content)return model;
+  var content=agentMsg.content;
+  var verified=null;
+  var seenSQL={};
+
+  for(var i=0;i<content.length;i++){
+    var item=content[i];
+    if(item.type==='tool_result'&&item.tool_result&&item.tool_result.content){
+      for(var j=0;j<item.tool_result.content.length;j++){
+        var c=item.tool_result.content[j];
+        if(c.type==='json'&&c.json&&c.json.verified_query_used!==undefined)verified=c.json.verified_query_used;
+      }
+    }
   }
 
-  function handleSSEEvent(turn, evt){
-    var type=evt._sseType||'';
+  if(verified===true)model.badges.push({label:'1 verified query',cls:'verified'});
+  model.badges.push({label:'Retrieved data',cls:'success'});
 
-    if(type==='response.status'){
-      addThinkingStep(turn, evt.message||evt.status||'Working...');
-      return;
+  for(var k=0;k<content.length;k++){
+    var it=content[k];
+    if(it.type==='thinking'||it.type==='tool_use')continue;
+
+    if(it.type==='text'&&it.text){
+      if(it.is_elicitation){
+        model.sections.push({type:'elicitation',html:buildElicitationHtml(it.text)});
+      }else{
+        model.sections.push({type:'text',html:fmtMd(it.text)});
+        if(!model.title)model.title=deriveTitle(it.text);
+      }
     }
-    if(type==='response.tool_use'){
-      var toolName = evt.name||evt.tool_name||(evt.tool_use&&evt.tool_use.name)||'tool';
-      addThinkingStep(turn, 'Calling ' + toolName + '...');
-      addMetaBadge(turn, 'Using ' + toolName, 'agent');
-      return;
+    else if(it.type==='chart'&&it.chart){
+      model.sections.push({type:'chart',html:mkCh(it.chart.chart_spec)});
     }
-    if(type==='response.tool_result.status'){
-      addThinkingStep(turn, evt.message||'Processing results...');
-      return;
+    else if(it.type==='table'&&it.table){
+      if(it.table.result_set)model.sections.push({type:'table',html:mkRs(it.table.result_set)});
     }
-    if(type==='response.thinking.delta'){
-      var txt=(evt.text||'').trim();
-      if(txt && shouldPaintThinking()) addThinkingStep(turn, txt.split('\n')[0]);
-      return;
+    else if(it.type==='sql'&&it.statement){
+      var key=it.statement.replace(/\s+/g,' ').trim();
+      if(!seenSQL[key]){seenSQL[key]=true;model.technical.push(mkSql(it.statement,verified===true||!!it.verified_query_used));}
     }
-    // intentionally do not paint response.text.delta / content_block deltas to the UI
+    else if(it.type==='suggestions'&&Array.isArray(it.suggestions)&&it.suggestions.length){
+      var sugHtml='<ul>'+it.suggestions.map(function(s){return '<li>'+esc(s)+'</li>';}).join('')+'</ul>';
+      model.sections.push({type:'suggestions',html:sugHtml});
+    }
+    else if(it.type==='tool_result'&&it.tool_result&&it.tool_result.content){
+      for(var x=0;x<it.tool_result.content.length;x++){
+        var tc=it.tool_result.content[x];
+        if(tc.type==='text'&&tc.text){
+          model.sections.push({type:'text',html:fmtMd(tc.text)});
+          if(!model.title)model.title=deriveTitle(tc.text);
+        }
+        else if(tc.type==='json'&&tc.json){
+          var js=tc.json;
+          if(js.text){
+            model.sections.push({type:'text',html:fmtMd(js.text)});
+            if(!model.title)model.title=deriveTitle(js.text);
+          }
+          if(js.sql){var sn=js.sql.replace(/\s+/g,' ').trim();if(!seenSQL[sn]){seenSQL[sn]=true;model.technical.push(mkSql(js.sql,verified===true));}}
+          if(js.statement){var sn2=js.statement.replace(/\s+/g,' ').trim();if(!seenSQL[sn2]){seenSQL[sn2]=true;model.technical.push(mkSql(js.statement,verified===true));}}
+          if(js.result_set)model.sections.push({type:'table',html:mkRs(js.result_set)});
+          if(js.resultSet)model.sections.push({type:'table',html:mkRs(js.resultSet)});
+          if(js.chart_spec)model.sections.push({type:'chart',html:mkCh(js.chart_spec)});
+          if(js.chartSpec)model.sections.push({type:'chart',html:mkCh(js.chartSpec)});
+          if(js.vega_spec)model.sections.push({type:'chart',html:mkCh(js.vega_spec)});
+          if(js.spec)model.sections.push({type:'chart',html:mkCh(js.spec)});
+        }
+      }
+    }
   }
 
-  async function sendMessage(text, regenerateMode){
-    var prompt=(text||'').trim();
-    if(!prompt||isWaiting) return;
+  if(!model.sections.length)model.sections.push({type:'text',html:'<p>No summary returned.</p>'});
+  return model;
+}
 
-    hideWelcome();
-    if(!regenerateMode){
-      addUserMsg(prompt);
-      inputEl.value='';
-      lastPrompt=prompt;
-      chatHistory.push({role:'user',content:[{type:'text',text:prompt}]});
+function deriveTitle(text){
+  if(!text)return 'Response';
+  var first=text.split('\n').find(function(line){return line.trim();})||'Response';
+  first=first.replace(/^#+\s*/,'').trim();
+  if(first.length>64)first=first.substring(0,61)+'...';
+  return first;
+}
+
+function renderTurnModel(turn,model){
+  turn.answerCardEl.classList.remove('hidden');
+  turn.answerTitleEl.textContent=model.title||'Response';
+  turn.answerSummaryEl.innerHTML='';
+
+  var sectionsHtml='';
+  for(var i=0;i<model.sections.length;i++){
+    sectionsHtml+=model.sections[i].html;
+  }
+  turn.answerSectionsEl.innerHTML=sectionsHtml;
+
+  (model.badges||[]).forEach(function(b){addMetaBadge(turn,b.label,b.cls);});
+
+  if(model.technical&&model.technical.length){
+    turn.technicalPanelEl.classList.remove('hidden');
+    turn.technicalBodyEl.innerHTML=model.technical.join('');
+  }else{
+    turn.technicalPanelEl.classList.add('hidden');
+    turn.technicalBodyEl.innerHTML='';
+  }
+  scrollB();
+}
+
+function parseSSEEvents(text){
+  var events=[];var blocks=text.split('\n\n');
+  for(var i=0;i<blocks.length;i++){
+    var block=blocks[i].trim();if(!block)continue;
+    var eventType='';var dataLine='';var lines=block.split('\n');
+    for(var j=0;j<lines.length;j++){
+      var ln=lines[j];
+      if(ln.indexOf('event:')===0)eventType=ln.substring(6).trim();
+      else if(ln.indexOf('data:')===0)dataLine+=ln.substring(5).trim();
     }
+    if(dataLine==='[DONE]')events.push({_sseType:'done',done:true});
+    else if(dataLine){try{var parsed=JSON.parse(dataLine);parsed._sseType=eventType||'unknown';events.push(parsed);}catch(e){}}
+  }
+  return events;
+}
 
-    setComposer(true);
-    var turn = newAssistantTurn();
-    var finalResponse=null;
-    lastThinkingPaint = 0;
+async function callApiStream(){
+  if(!PAT)throw new Error('Snowflake PAT is missing. Inject it at runtime instead of hardcoding it in the HTML.');
+  var r=await fetch(SF_URL+AG_PATH,{
+    method:'POST',
+    headers:{'Authorization':'Bearer '+PAT,'Content-Type':'application/json','Accept':'text/event-stream'},
+    body:JSON.stringify({messages:chatHistory,stream:true})
+  });
+  if(!r.ok)throw new Error('API '+r.status+': '+await r.text());
+  return r;
+}
 
-    try{
-      var response=await callApiStream();
-      var reader=response.body.getReader();
-      var decoder=new TextDecoder();
-      var buffer='';
+function handleSSEEvent(turn,evt){
+  var type=evt._sseType||'';
 
-      while(true){
-        var result=await reader.read();
-        if(result.done) break;
-        buffer+=decoder.decode(result.value,{stream:true});
-        var lastDoubleNewline=buffer.lastIndexOf('\n\n');
-        if(lastDoubleNewline===-1) continue;
-        var complete=buffer.substring(0,lastDoubleNewline+2);
-        buffer=buffer.substring(lastDoubleNewline+2);
-        var events=parseSSEEvents(complete);
-        for(var ei=0;ei<events.length;ei++){
-          var evt=events[ei];
-          if(evt.done) continue;
-          if(evt._sseType==='response'&&evt.content) finalResponse=evt;
-          else handleSSEEvent(turn, evt);
-        }
-      }
-
-      if(buffer.trim()){
-        var remaining=parseSSEEvents(buffer);
-        for(var ri=0;ri<remaining.length;ri++){
-          var revt=remaining[ri];
-          if(revt.done) continue;
-          if(revt._sseType==='response'&&revt.content) finalResponse=revt;
-          else handleSSEEvent(turn, revt);
-        }
-      }
-
-      finishThinking(turn);
-      await new Promise(function(resolve){ setTimeout(resolve, 80); });
-
-      if(finalResponse){
-        var botText=extractBotText(finalResponse);
-        if(botText) chatHistory.push({role:'assistant',content:[{type:'text',text:botText}]});
-        var model=buildTurnModel(finalResponse);
-        renderTurnModel(turn, model);
-      } else {
+  if(type==='metadata'){
+    if(evt.metadata&&evt.metadata.run_id){
+      lastRunId=evt.metadata.run_id;
+      turn.msgEl.setAttribute('data-run-id',lastRunId);
+    }
+    return;
+  }
+  if(type==='response.status'){
+    updateThinkingStatus(turn,evt.message||evt.status||'Working...');
+    return;
+  }
+  if(type==='response.tool_use'){
+    var toolName=evt.name||evt.tool_name||(evt.tool_use&&evt.tool_use.name)||'tool';
+    updateThinkingStatus(turn,'Calling '+toolName);
+    addMetaBadge(turn,'Using '+toolName,'agent');
+    return;
+  }
+  if(type==='response.tool_result.status'){
+    updateThinkingStatus(turn,evt.message||'Processing results...');
+    return;
+  }
+  if(type==='response.tool_result'){
+    var resultName=evt.name||'tool';
+    updateThinkingStatus(turn,resultName+' — '+(evt.status||'done'));
+    return;
+  }
+  if(type==='response.thinking.delta'){
+    var txt=evt.text||'';
+    if(txt)appendThinkingText(turn,txt);
+    return;
+  }
+  if(type==='response.text.delta'){
+    if(evt.text){
+      if(evt.is_elicitation){
+        turn.textBuffer+=evt.text;
         turn.answerCardEl.classList.remove('hidden');
-        turn.answerTitleEl.textContent='No final response received';
-        turn.answerSummaryEl.innerHTML='<p style="color:#98a2b3;">The Snowflake agent did not return a final response payload.</p>';
+        turn.answerSectionsEl.innerHTML=buildElicitationHtml(turn.textBuffer);
+        turn.answerTitleEl.textContent='Clarification needed';
+      }else{
+        turn.textBuffer+=evt.text;
+        turn.answerCardEl.classList.remove('hidden');
+        turn.answerTitleEl.textContent=deriveTitle(turn.textBuffer);
+        turn.answerSectionsEl.innerHTML=fmtMd(turn.textBuffer);
       }
-    } catch(e){
-      console.error(e);
-      finishThinking(turn);
-      turn.answerCardEl.classList.remove('hidden');
-      turn.answerTitleEl.textContent='Request failed';
-      turn.answerSummaryEl.innerHTML='<p style="color:#d13438;">'+esc(e.message||'Something went wrong.')+'</p>';
-    } finally {
-      setComposer(false);
-      inputEl.focus();
       scrollB();
     }
+    return;
+  }
+  if(type==='response.table'){
+    if(evt.result_set){
+      turn.answerCardEl.classList.remove('hidden');
+      var tableDiv=document.createElement('div');
+      tableDiv.innerHTML=mkRs(evt.result_set);
+      turn.answerSectionsEl.appendChild(tableDiv);
+      scrollB();
+    }
+    return;
+  }
+  if(type==='response.chart'){
+    if(evt.chart_spec){
+      turn.answerCardEl.classList.remove('hidden');
+      var chartDiv=document.createElement('div');
+      chartDiv.innerHTML=mkCh(evt.chart_spec);
+      turn.answerSectionsEl.appendChild(chartDiv);
+      scrollB();
+    }
+    return;
+  }
+  if(type==='response.tool_result.analyst.delta'){
+    if(evt.delta){
+      if(evt.delta.think)appendThinkingText(turn,evt.delta.think);
+      if(evt.delta.text){
+        turn.textBuffer+=evt.delta.text;
+        turn.answerCardEl.classList.remove('hidden');
+        turn.answerSectionsEl.innerHTML=fmtMd(turn.textBuffer);
+        scrollB();
+      }
+      if(evt.delta.sql)updateThinkingStatus(turn,'SQL generated');
+      if(evt.delta.result_set){
+        updateThinkingStatus(turn,'Query executed');
+        turn.answerCardEl.classList.remove('hidden');
+        var tDiv=document.createElement('div');
+        tDiv.innerHTML=mkRs(evt.delta.result_set);
+        turn.answerSectionsEl.appendChild(tDiv);
+        scrollB();
+      }
+    }
+    return;
+  }
+}
+
+async function sendMessage(text,regenerateMode){
+  var prompt=(text||'').trim();
+  if(!prompt||isWaiting)return;
+
+  hideWelcome();
+  if(!regenerateMode){
+    addUserMsg(prompt);
+    inputEl.value='';
+    lastPrompt=prompt;
+    chatHistory.push({role:'user',content:[{type:'text',text:prompt}]});
   }
 
-  sendBtnEl.addEventListener('click', function(){ sendMessage(inputEl.value,false); });
-  inputEl.addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); sendMessage(inputEl.value,false); } });
-  chipEls.forEach(function(chip){ chip.addEventListener('click', function(){ sendMessage(chip.getAttribute('data-prompt')||'',false); }); });
-  document.querySelectorAll('.card[data-prompt]').forEach(function(card){ card.addEventListener('click', function(){ sendMessage(card.getAttribute('data-prompt')||'',false); }); });
-  newChatBtn.addEventListener('click', function(){ clearChat(); });
-  regenerateBtn.addEventListener('click', function(){ if(!lastPrompt||isWaiting) return; sendMessage(lastPrompt,true); });
+  setComposer(true);
+  var turn=newAssistantTurn();
+  var finalResponse=null;
 
-  chatThreadEl.addEventListener('click', function(e){
-    var btn=e.target.closest('.bot-action-btn'); if(!btn) return;
-    var action=btn.getAttribute('data-action');
-    var msgEl=btn.closest('.msg.b'); if(!msgEl) return;
-    var noteEl=msgEl.querySelector('[data-role="feedback-note"]');
-    var contentEl=msgEl.querySelector('[data-role="answer-card"]');
+  try{
+    var response=await callApiStream();
+    var reader=response.body.getReader();
+    var decoder=new TextDecoder();
+    var buffer='';
 
-    if(action==='like'){ btn.classList.toggle('active-like'); var db=msgEl.querySelector('[data-action="dislike"]'); if(db) db.classList.remove('active-dislike'); if(noteEl) noteEl.textContent = btn.classList.contains('active-like') ? 'Marked helpful' : ''; return; }
-    if(action==='dislike'){ btn.classList.toggle('active-dislike'); var lb=msgEl.querySelector('[data-action="like"]'); if(lb) lb.classList.remove('active-like'); if(noteEl) noteEl.textContent = btn.classList.contains('active-dislike') ? 'Marked not helpful' : ''; return; }
-    if(action==='comment'){ openCommentModal(msgEl); return; }
-    if(action==='copy'){ copyText(stripHtml(contentEl.innerHTML),noteEl); return; }
-    if(action==='export-table'){ exportTableFromMessage(msgEl,noteEl); return; }
-    if(action==='download'){ downloadTextFile('loan_boarding_response.txt',stripHtml(contentEl.innerHTML),noteEl); return; }
-  });
+    while(true){
+      var result=await reader.read();
+      if(result.done)break;
+      buffer+=decoder.decode(result.value,{stream:true});
+      var lastDoubleNewline=buffer.lastIndexOf('\n\n');
+      if(lastDoubleNewline===-1)continue;
+      var complete=buffer.substring(0,lastDoubleNewline+2);
+      buffer=buffer.substring(lastDoubleNewline+2);
+      var events=parseSSEEvents(complete);
+      for(var ei=0;ei<events.length;ei++){
+        var evt=events[ei];
+        if(evt.done)continue;
+        if(evt._sseType==='response'&&evt.content)finalResponse=evt;
+        else handleSSEEvent(turn,evt);
+      }
+    }
 
-  commentCancelBtn.addEventListener('click', closeCommentModal);
-  commentSaveBtn.addEventListener('click', function(){
-    if(!pendingCommentTarget){ closeCommentModal(); return; }
-    var noteEl=pendingCommentTarget.querySelector('[data-role="feedback-note"]');
-    var val=(commentText.value||'').trim();
-    if(val){ console.log('User comment:', val); if(noteEl) noteEl.textContent='Comment saved'; setTimeout(function(){ if(noteEl) noteEl.textContent=''; },1800); }
-    closeCommentModal();
-  });
-  commentModal.addEventListener('click', function(e){ if(e.target===commentModal) closeCommentModal(); });
-  window.addEventListener('resize', scrollB);
+    if(buffer.trim()){
+      var remaining=parseSSEEvents(buffer);
+      for(var ri=0;ri<remaining.length;ri++){
+        var revt=remaining[ri];
+        if(revt.done)continue;
+        if(revt._sseType==='response'&&revt.content)finalResponse=revt;
+        else handleSSEEvent(turn,revt);
+      }
+    }
+
+    finishThinking(turn);
+    await new Promise(function(resolve){setTimeout(resolve,80);});
+
+    if(finalResponse){
+      if(finalResponse.metadata&&finalResponse.metadata.run_id){
+        lastRunId=finalResponse.metadata.run_id;
+      }
+      turn.msgEl.setAttribute('data-run-id',lastRunId);
+
+      var botText=extractBotText(finalResponse);
+      if(botText)chatHistory.push({role:'assistant',content:[{type:'text',text:botText}]});
+      var model=buildTurnModel(finalResponse);
+      renderTurnModel(turn,model);
+    }else{
+      turn.answerCardEl.classList.remove('hidden');
+      turn.answerTitleEl.textContent='No final response received';
+      turn.answerSummaryEl.innerHTML='<p style="color:#98a2b3;">The Snowflake agent did not return a final response payload.</p>';
+    }
+  }catch(e){
+    console.error(e);
+    finishThinking(turn);
+    turn.answerCardEl.classList.remove('hidden');
+    turn.answerTitleEl.textContent='Request failed';
+    turn.answerSummaryEl.innerHTML='<p style="color:#d13438;">'+esc(e.message||'Something went wrong.')+'</p>';
+  }finally{
+    setComposer(false);inputEl.focus();scrollB();
+  }
+}
+
+sendBtnEl.addEventListener('click',function(){sendMessage(inputEl.value,false);});
+inputEl.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();sendMessage(inputEl.value,false);}});
+chipEls.forEach(function(chip){chip.addEventListener('click',function(){sendMessage(chip.getAttribute('data-prompt')||'',false);});});
+document.querySelectorAll('.card[data-prompt]').forEach(function(card){card.addEventListener('click',function(){sendMessage(card.getAttribute('data-prompt')||'',false);});});
+newChatBtn.addEventListener('click',function(){clearChat();});
+regenerateBtn.addEventListener('click',function(){if(!lastPrompt||isWaiting)return;sendMessage(lastPrompt,true);});
+
+chatThreadEl.addEventListener('click',function(e){
+  var optBtn=e.target.closest('.elicitation-option');
+  if(optBtn){
+    sendMessage(optBtn.getAttribute('data-option'),false);
+    return;
+  }
+  var elSendBtn=e.target.closest('.elicitation-send');
+  if(elSendBtn){
+    var elInput=elSendBtn.parentElement.querySelector('.elicitation-input');
+    if(elInput&&elInput.value.trim()){
+      sendMessage(elInput.value.trim(),false);
+    }
+    return;
+  }
+
+  var btn=e.target.closest('.bot-action-btn');if(!btn)return;
+  var action=btn.getAttribute('data-action');
+  var msgEl=btn.closest('.msg.b');if(!msgEl)return;
+  var noteEl=msgEl.querySelector('[data-role="feedback-note"]');
+  var contentEl=msgEl.querySelector('[data-role="answer-card"]');
+
+  if(action==='like'){
+    btn.classList.toggle('active-like');
+    var db=msgEl.querySelector('[data-action="dislike"]');if(db)db.classList.remove('active-dislike');
+    var isLiked=btn.classList.contains('active-like');
+    if(noteEl)noteEl.textContent=isLiked?'Marked helpful':'';
+    if(isLiked)sendFeedback(msgEl,true,'Helpful response');
+    return;
+  }
+  if(action==='dislike'){
+    btn.classList.toggle('active-dislike');
+    var lb=msgEl.querySelector('[data-action="like"]');if(lb)lb.classList.remove('active-like');
+    var isDisliked=btn.classList.contains('active-dislike');
+    if(noteEl)noteEl.textContent=isDisliked?'Marked not helpful':'';
+    if(isDisliked)sendFeedback(msgEl,false,'');
+    return;
+  }
+  if(action==='comment'){openCommentModal(msgEl);return;}
+  if(action==='copy'){copyText(stripHtml(contentEl.innerHTML),noteEl);return;}
+  if(action==='export-table'){exportTableFromMessage(msgEl,noteEl);return;}
+  if(action==='download'){downloadTextFile('loan_boarding_response.txt',stripHtml(contentEl.innerHTML),noteEl);return;}
+});
+
+chatThreadEl.addEventListener('keydown',function(e){
+  if(e.key==='Enter'&&e.target.classList.contains('elicitation-input')){
+    e.preventDefault();
+    var val=e.target.value.trim();
+    if(val)sendMessage(val,false);
+  }
+});
+
+commentCancelBtn.addEventListener('click',closeCommentModal);
+commentSaveBtn.addEventListener('click',function(){
+  if(!pendingCommentTarget){closeCommentModal();return;}
+  var noteEl=pendingCommentTarget.querySelector('[data-role="feedback-note"]');
+  var val=(commentText.value||'').trim();
+  if(val){
+    sendFeedback(pendingCommentTarget,false,val);
+    if(noteEl)noteEl.textContent='Feedback sent';
+    setTimeout(function(){if(noteEl)noteEl.textContent='';},1800);
+  }
+  closeCommentModal();
+});
+commentModal.addEventListener('click',function(e){if(e.target===commentModal)closeCommentModal();});
+commentModal.addEventListener('keydown',function(e){if(e.key==='Escape')closeCommentModal();});
+window.addEventListener('resize',scrollB);
 </script>
 </body>
 </html>
